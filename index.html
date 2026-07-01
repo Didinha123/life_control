@@ -60,9 +60,9 @@ tailwind.config={theme:{extend:{colors:{blue:'#3b82f6',gold:'#f59e0b',purple:'#8
       <span class="nav-label">Saúde</span>
     </div>
     <div class="nav-section">Trabalho</div>
-    <div class="nav-item" onclick="nav('mercadolivre')">
-      <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
-      <span class="nav-label">Mercado Livre</span>
+    <div class="nav-item" onclick="nav('trabalho')">
+      <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <span class="nav-label">Trabalho & Estudos</span>
     </div>
     <div class="nav-item" onclick="nav('projetos')">
       <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
@@ -114,6 +114,7 @@ tailwind.config={theme:{extend:{colors:{blue:'#3b82f6',gold:'#f59e0b',purple:'#8
         <div class="pulse-dot"></div>
         <span style="font-size:12px;color:var(--text2);" id="topbar-date"></span>
       </div>
+      <button class="theme-btn" onclick="toggleTheme()" id="theme-btn">☀️</button>
       <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;">D</div>
     </div>
   </div>
@@ -275,7 +276,7 @@ tailwind.config={theme:{extend:{colors:{blue:'#3b82f6',gold:'#f59e0b',purple:'#8
             <div style="flex:1;">
               <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:4px;"><span>Progresso</span><span id="biblia-pct">34%</span></div>
               <div class="progress-track"><div class="progress-fill" id="biblia-bar" style="background:linear-gradient(90deg,var(--purple),var(--blue));width:34%;"></div></div>
-              <div style="font-size:11px;color:var(--text3);margin-top:4px;">124 de 365 dias</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:4px;" id="biblia-dia">Dia 1 de 365</div>
             </div>
           </div>
           <div style="background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.15);border-radius:10px;padding:12px;">
@@ -286,6 +287,9 @@ tailwind.config={theme:{extend:{colors:{blue:'#3b82f6',gold:'#f59e0b',purple:'#8
         <!-- Checklist Espiritual -->
         <div class="card" style="border-color:rgba(139,92,246,0.25);">
           <div style="font-size:11px;color:var(--purple2);font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:14px;">✝️ Checklist Espiritual</div>
+          <div style="margin-bottom:12px;">
+            <button class="btn btn-ghost btn-sm" onclick="avancarBiblia()">📖 Marcar leitura de hoje</button>
+          </div>
           <div id="espiritual-checklist" style="display:flex;flex-direction:column;gap:10px;"></div>
         </div>
       </div>
@@ -316,23 +320,62 @@ tailwind.config={theme:{extend:{colors:{blue:'#3b82f6',gold:'#f59e0b',purple:'#8
     </div>
   </div>
 
-  <!-- ===== MERCADO LIVRE ===== -->
-  <div class="section" id="section-mercadolivre">
-    <div style="max-width:1200px;margin:0 auto;">
+  <!-- ===== TRABALHO & ESTUDOS ===== -->
+  <div class="section" id="section-trabalho">
+    <div style="max-width:900px;margin:0 auto;">
       <div class="page-header">
-        <div class="page-title">Mercado <span style="background:linear-gradient(135deg,#fbbf24,#f59e0b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Livre</span></div>
-        <div class="page-sub">Painel profissional de gestão — Projetos, Automações e Indicadores</div>
+        <div class="page-title">Trabalho & <span class="grad-blue">Estudos</span></div>
+        <div class="page-sub">Registre suas horas de foco e acompanhe seu horário</div>
       </div>
-      <!-- KPIs -->
-      <div class="grid-4 fade-up" style="margin-bottom:24px;">
-        <div class="card" style="border-color:rgba(245,158,11,0.2);"><div style="font-size:11px;color:var(--gold);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Projetos Ativos</div><div class="stat-val grad-gold">5</div><div class="stat-label">2 em sprint</div></div>
-        <div class="card" style="border-color:rgba(245,158,11,0.2);"><div style="font-size:11px;color:var(--gold);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Automações</div><div class="stat-val grad-gold">12</div><div class="stat-label">GAS rodando</div></div>
-        <div class="card" style="border-color:rgba(245,158,11,0.2);"><div style="font-size:11px;color:var(--gold);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Tarefas Semana</div><div class="stat-val grad-gold">18</div><div class="stat-label">7 concluídas</div></div>
-        <div class="card" style="border-color:rgba(245,158,11,0.2);"><div style="font-size:11px;color:var(--gold);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Dashboards</div><div class="stat-val grad-gold">4</div><div class="stat-label">ativos no Looker</div></div>
+      <!-- Registro de horas -->
+      <div class="card fade-up" style="margin-bottom:20px;">
+        <div style="font-weight:600;margin-bottom:16px;">⏱ Registro de Hoje</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px;">
+          <div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Horas trabalhadas</div>
+            <input class="inp" id="input-horas-trab" type="number" step="0.5" min="0" max="16" placeholder="0.0">
+            <div style="font-size:11px;color:var(--text3);margin-top:6px;">Meta: 8h • Hoje: <span id="trab-work-pct">0h</span></div>
+            <div class="progress-track" style="margin-top:6px;"><div class="progress-fill" id="trab-work-bar" style="background:linear-gradient(90deg,var(--blue),var(--cyan));width:0%;"></div></div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Horas de estudo</div>
+            <input class="inp" id="input-horas-est" type="number" step="0.5" min="0" max="8" placeholder="0.0">
+            <div style="font-size:11px;color:var(--text3);margin-top:6px;">Meta: 2h • Hoje: <span id="trab-est-pct">0h</span></div>
+            <div class="progress-track" style="margin-top:6px;"><div class="progress-fill" id="trab-est-bar" style="background:linear-gradient(90deg,var(--purple),var(--purple2));width:0%;"></div></div>
+          </div>
+        </div>
+        <button class="btn btn-blue" onclick="salvarTrabalho()">Salvar Horas</button>
       </div>
-      <!-- Kanban -->
-      <div style="font-weight:600;margin-bottom:14px;">Kanban de Tarefas</div>
-      <div style="display:flex;gap:16px;overflow-x:auto;padding-bottom:8px;" id="ml-kanban"></div>
+      <!-- Blocos de horário -->
+      <div class="card fade-up fade-up-d1" style="margin-bottom:20px;">
+        <div style="font-weight:600;margin-bottom:16px;">📅 Agenda do Dia</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div style="display:grid;grid-template-columns:80px 1fr;gap:12px;align-items:center;padding:8px 12px;background:rgba(59,130,246,0.06);border-radius:10px;border-left:3px solid var(--blue);">
+            <span style="font-size:12px;font-weight:700;color:var(--blue2);">08:00</span>
+            <span style="font-size:13px;">💼 Início do expediente — foco total (Pomodoro 50/10)</span>
+          </div>
+          <div style="display:grid;grid-template-columns:80px 1fr;gap:12px;align-items:center;padding:8px 12px;background:rgba(245,158,11,0.06);border-radius:10px;border-left:3px solid var(--gold);">
+            <span style="font-size:12px;font-weight:700;color:var(--gold2);">12:00</span>
+            <span style="font-size:13px;">🍽 Almoço — pausa mental (longe do computador)</span>
+          </div>
+          <div style="display:grid;grid-template-columns:80px 1fr;gap:12px;align-items:center;padding:8px 12px;background:rgba(59,130,246,0.06);border-radius:10px;border-left:3px solid var(--blue);">
+            <span style="font-size:12px;font-weight:700;color:var(--blue2);">13:00</span>
+            <span style="font-size:13px;">💼 Tarde — projetos principais, reuniões e entregas</span>
+          </div>
+          <div style="display:grid;grid-template-columns:80px 1fr;gap:12px;align-items:center;padding:8px 12px;background:rgba(139,92,246,0.06);border-radius:10px;border-left:3px solid var(--purple);">
+            <span style="font-size:12px;font-weight:700;color:var(--purple2);">17:00</span>
+            <span style="font-size:13px;">🏁 Fim do expediente — revisão do dia</span>
+          </div>
+          <div style="display:grid;grid-template-columns:80px 1fr;gap:12px;align-items:center;padding:8px 12px;background:rgba(139,92,246,0.06);border-radius:10px;border-left:3px solid var(--purple);">
+            <span style="font-size:12px;font-weight:700;color:var(--purple2);">19:30</span>
+            <span style="font-size:13px;">📚 Estudos — cursos, leituras técnicas, projetos pessoais</span>
+          </div>
+          <div style="display:grid;grid-template-columns:80px 1fr;gap:12px;align-items:center;padding:8px 12px;background:rgba(139,92,246,0.06);border-radius:10px;border-left:3px solid var(--purple);">
+            <span style="font-size:12px;font-weight:700;color:var(--purple2);">21:30</span>
+            <span style="font-size:13px;">✅ Encerrar estudos — preparar plano do dia seguinte</span>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -419,13 +462,14 @@ tailwind.config={theme:{extend:{colors:{blue:'#3b82f6',gold:'#f59e0b',purple:'#8
               <div class="badge badge-blue">Flex</div>
             </div>
             <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;">
-              <div style="display:flex;align-items:center;gap:10px;"><div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#be123c,#9f1239);display:flex;align-items:center;justify-content:center;font-size:18px;">🎯</div><div><div style="font-weight:600;">Miss Fortune</div><div style="font-size:11px;color:var(--text3);">Situacional • ADC</div></div></div>
+              <div style="display:flex;align-items:center;gap:10px;"><div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#be123c,#9f1239);display:flex;align-items:center;justify-content:center;font-size:18px;">🔫</div><div><div style="font-weight:600;">Lucian</div><div style="font-size:11px;color:var(--text3);">Terceiro • ADC</div></div></div>
               <div class="badge badge-rose">Situacional</div>
             </div>
           </div>
         </div>
         <div class="card" style="border-color:rgba(139,92,246,0.2);">
-          <div style="font-weight:600;margin-bottom:14px;color:var(--purple2);">Foco de Treino Hoje</div>
+          <div style="font-weight:600;margin-bottom:4px;color:var(--purple2);" id="lol-treino-label">Foco de Treino Hoje</div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:12px;">Plano rotativo — diferente a cada dia</div>
           <div id="lol-treino-list" style="display:flex;flex-direction:column;gap:8px;"></div>
         </div>
       </div>
@@ -461,9 +505,9 @@ tailwind.config={theme:{extend:{colors:{blue:'#3b82f6',gold:'#f59e0b',purple:'#8
         <div class="page-sub">Nutra seu relacionamento com intenção e amor</div>
       </div>
       <div class="grid-3 fade-up" style="margin-bottom:20px;">
-        <div class="card" style="border-color:rgba(244,114,182,0.2);text-align:center;"><div style="font-size:32px;margin-bottom:4px;">💕</div><div class="stat-val" style="color:#f472b6;">3 anos</div><div class="stat-label">juntos</div></div>
-        <div class="card" style="border-color:rgba(244,114,182,0.2);text-align:center;"><div style="font-size:32px;margin-bottom:4px;">📅</div><div class="stat-val" style="color:#f472b6;" id="casamento-encontro">Qui</div><div class="stat-label">próximo encontro</div></div>
-        <div class="card" style="border-color:rgba(244,114,182,0.2);text-align:center;"><div style="font-size:32px;margin-bottom:4px;">🎯</div><div class="stat-val" style="color:#f472b6;">5/7</div><div class="stat-label">checklist semana</div></div>
+        <div class="card" style="border-color:rgba(244,114,182,0.2);text-align:center;"><div style="font-size:32px;margin-bottom:4px;">💕</div><div class="stat-val" style="color:#f472b6;" id="cas-dias-juntos">—</div><div class="stat-label">dias juntos (namoro)</div></div>
+        <div class="card" style="border-color:rgba(244,114,182,0.2);text-align:center;"><div style="font-size:32px;margin-bottom:4px;">🎂</div><div class="stat-val" style="color:#f472b6;" id="cas-prox-aniv">—</div><div class="stat-label">próx. aniversário de namoro</div></div>
+        <div class="card" style="border-color:rgba(244,114,182,0.2);text-align:center;"><div style="font-size:32px;margin-bottom:4px;">💍</div><div class="stat-val" style="color:#f472b6;">18/02/2018</div><div class="stat-label">cerimônia de casamento</div></div>
       </div>
       <div class="grid-2 fade-up fade-up-d1">
         <div class="card" style="border-color:rgba(244,114,182,0.2);">
@@ -512,6 +556,10 @@ tailwind.config={theme:{extend:{colors:{blue:'#3b82f6',gold:'#f59e0b',purple:'#8
         </div>
         <div class="card" style="border-color:rgba(34,197,94,0.2);">
           <div style="font-weight:600;margin-bottom:14px;">Metas de Saúde</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+            <div style="font-size:12px;color:var(--text3);">Meta de peso (kg):</div>
+            <input class="inp" id="saude-peso-meta" type="number" value="90" style="width:80px;" onchange="salvarPesoMeta()">
+          </div>
           <div id="saude-metas" style="display:flex;flex-direction:column;gap:14px;"></div>
         </div>
       </div>
@@ -537,18 +585,35 @@ tailwind.config={theme:{extend:{colors:{blue:'#3b82f6',gold:'#f59e0b',purple:'#8
         <div class="page-sub">Visualize sua evolução com dados completos</div>
       </div>
       <div class="grid-4 fade-up" style="margin-bottom:24px;">
-        <div class="card"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Horas Estudadas</div><div class="stat-val grad-blue">48h</div><div class="stat-label">este mês</div></div>
-        <div class="card"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Horas Jogadas</div><div class="stat-val grad-gold">18h</div><div class="stat-label">este mês</div></div>
-        <div class="card"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Tempo Produtivo</div><div class="stat-val" style="color:var(--green);">180h</div><div class="stat-label">este mês</div></div>
-        <div class="card"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Hábitos Cumpridos</div><div class="stat-val" style="color:var(--purple2);">87%</div><div class="stat-label">taxa do mês</div></div>
+        <div class="card"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Score Médio (30d)</div><div class="stat-val grad-blue" id="rel-score">—</div><div class="stat-label">média mensal</div></div>
+        <div class="card"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Hábitos (30d)</div><div class="stat-val grad-gold" id="rel-habitos">—</div><div class="stat-label">taxa de conclusão</div></div>
+        <div class="card"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Horas Trabalho</div><div class="stat-val" style="color:var(--green);" id="rel-trab">—</div><div class="stat-label">acumulado 30 dias</div></div>
+        <div class="card"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Horas Estudo</div><div class="stat-val" style="color:var(--purple2);" id="rel-est">—</div><div class="stat-label">acumulado 30 dias</div></div>
       </div>
       <div class="grid-2 fade-up fade-up-d1" style="margin-bottom:20px;">
         <div class="card"><div style="font-weight:600;margin-bottom:16px;">Evolução Mensal</div><div style="position:relative;height:200px;"><canvas id="chart-mensal"></canvas></div></div>
         <div class="card"><div style="font-weight:600;margin-bottom:16px;">Radar de Vida</div><div style="position:relative;height:200px;"><canvas id="chart-radar"></canvas></div></div>
       </div>
-      <div class="card fade-up fade-up-d2">
-        <div style="font-weight:600;margin-bottom:16px;">Heat Map — Hábitos (últimas 12 semanas)</div>
-        <div id="heatmap" style="overflow-x:auto;"></div>
+      <div class="card fade-up fade-up-d2" style="margin-bottom:20px;">
+        <div style="font-weight:600;margin-bottom:16px;">Heat Map — Score Diário (últimas 13 semanas)</div>
+        <div id="heatmap" style="overflow-x:auto;padding-bottom:4px;"></div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:11px;color:var(--text3);">
+          <span>Menos</span>
+          <div style="width:12px;height:12px;border-radius:2px;background:rgba(255,255,255,0.06);"></div>
+          <div style="width:12px;height:12px;border-radius:2px;background:rgba(34,197,94,0.2);"></div>
+          <div style="width:12px;height:12px;border-radius:2px;background:rgba(34,197,94,0.5);"></div>
+          <div style="width:12px;height:12px;border-radius:2px;background:rgba(34,197,94,0.9);"></div>
+          <span>Mais</span>
+        </div>
+      </div>
+      <div class="card fade-up fade-up-d3">
+        <div style="font-weight:600;margin-bottom:16px;">Histórico Diário</div>
+        <div style="overflow-x:auto;">
+          <table class="hist-table">
+            <thead><tr><th>Data</th><th>Score</th><th>Hábitos</th><th>Trabalho</th><th>Estudo</th><th>LoL</th><th>Peso</th></tr></thead>
+            <tbody id="hist-table-body"></tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
