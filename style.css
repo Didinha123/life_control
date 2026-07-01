@@ -66,7 +66,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 /* ── CARDS ── */
 .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;transition:all .2s;position:relative;overflow:hidden;}
 .card:hover{background:var(--cardhover);border-color:var(--border2);transform:translateY(-1px);}
-.card::before{content:'';position:absolute;inset:0;border-radius:16px;opacity:0;transition:opacity .3s;background:radial-gradient(600px circle at var(--mx,50%) var(--my,50%),rgba(59,130,246,0.06),transparent 40%);}
+.card::before{content:'';position:absolute;inset:0;border-radius:16px;opacity:0;transition:opacity .3s;background:radial-gradient(600px circle at var(--mx,50%) var(--my,50%),rgba(59,130,246,0.06),transparent 40%);pointer-events:none;}
 .card:hover::before{opacity:1;}
 
 /* ── UTIL ── */
