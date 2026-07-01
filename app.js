@@ -382,20 +382,58 @@ function renderRotina(){
       <div class="tl-card">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
           <div style="flex:1;">
-            <div class="tl-time editable" onclick="editRotina(${i},'hora',this)">${item.hora}</div>
-            <div class="tl-title editable" onclick="editRotina(${i},'titulo',this)" style="text-decoration:${item.done?'line-through':''};opacity:${item.done?.6:1};">${item.titulo}</div>
-            <div class="tl-obs editable" onclick="editRotina(${i},'obs',this)">${item.obs}</div>
+            <span id="rot-hora-${i}" class="tl-time">${item.hora}</span>
+            <div id="rot-titulo-${i}" class="tl-title" style="text-decoration:${item.done?'line-through':''};opacity:${item.done?.6:1};">${item.titulo}</div>
+            <div id="rot-obs-${i}" class="tl-obs">${item.obs}</div>
           </div>
-          <div onclick="toggleRotina(${i})" style="width:28px;height:28px;border-radius:8px;border:2px solid ${item.done?'var(--green)':'var(--border2)'};background:${item.done?'var(--green)':'transparent'};display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .2s;">
-            ${item.done?'<svg width="14" height="14" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>':''}
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+            <button onclick="editRotinaPrompt(${i})" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:12px;padding:2px 4px;" title="Editar">✏️</button>
+            <button onclick="deleteRotina(${i})" style="background:none;border:none;cursor:pointer;color:var(--rose);font-size:15px;padding:2px 4px;line-height:1;" title="Excluir">&times;</button>
+            <div onclick="toggleRotina(${i})" style="width:28px;height:28px;border-radius:8px;border:2px solid ${item.done?'var(--green)':'var(--border2)'};background:${item.done?'var(--green)':'transparent'};display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;">
+              ${item.done?'<svg width="14" height="14" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>':''}
+            </div>
           </div>
         </div>
       </div>
     </div>
-  `).join('');
+  `).join('')+`
+  <div class="tl-item" style="margin-top:8px;">
+    <div class="tl-dot" style="background:var(--border2);border-color:var(--border2);"></div>
+    <div class="tl-card" style="display:flex;flex-direction:column;gap:8px;">
+      <div style="font-size:12px;font-weight:600;color:var(--text2);">+ Adicionar horário</div>
+      <div style="display:grid;grid-template-columns:80px 1fr 1fr;gap:8px;">
+        <input class="inp" id="rot-new-hora" placeholder="09:00" style="font-size:12px;padding:7px 10px;">
+        <input class="inp" id="rot-new-titulo" placeholder="Título..." style="font-size:12px;padding:7px 10px;">
+        <input class="inp" id="rot-new-obs" placeholder="Observação..." style="font-size:12px;padding:7px 10px;">
+      </div>
+      <button class="btn btn-blue btn-sm" onclick="addRotina()" style="align-self:flex-start;">+ Adicionar</button>
+    </div>
+  </div>`;
   renderRotinaPreview();
 }
-function editRotina(i,field,el){makeEditable(el,v=>state.rotina[i][field]=v);}
+function editRotinaPrompt(i){
+  // editar inline clicando nos campos
+  const hora=document.getElementById('rot-hora-'+i);
+  const titulo=document.getElementById('rot-titulo-'+i);
+  const obs=document.getElementById('rot-obs-'+i);
+  if(hora) makeEditable(hora,v=>state.rotina[i].hora=v);
+  setTimeout(()=>{
+    if(titulo) makeEditable(titulo,v=>state.rotina[i].titulo=v);
+  },100);
+  setTimeout(()=>{
+    if(obs) makeEditable(obs,v=>state.rotina[i].obs=v);
+  },200);
+}
+function deleteRotina(i){state.rotina.splice(i,1);saveState();renderRotina();}
+function addRotina(){
+  const hora=document.getElementById('rot-new-hora');
+  const titulo=document.getElementById('rot-new-titulo');
+  const obs=document.getElementById('rot-new-obs');
+  if(!titulo||!titulo.value.trim()){showNotif('⚠️','Preencha o título!','','var(--gold)');return;}
+  state.rotina.push({hora:hora?.value||'00:00',titulo:titulo.value.trim(),obs:obs?.value||'',done:false});
+  if(hora)hora.value='';if(titulo)titulo.value='';if(obs)obs.value='';
+  saveState();renderRotina();
+}
 function toggleRotina(i){state.rotina[i].done=!state.rotina[i].done;saveState();renderRotina();}
 function renderRotinaPreview(){
   const el=document.getElementById('home-rotina-preview');
@@ -413,18 +451,39 @@ function renderHabitos(){
   const el=document.getElementById('habitos-list');
   if(!el) return;
   el.innerHTML=state.habitos.map((h,i)=>`
-    <div style="display:flex;align-items:center;gap:14px;padding:14px 18px;background:${h.done?'rgba(34,197,94,0.06)':'var(--card)'};border:1px solid ${h.done?'rgba(34,197,94,0.25)':'var(--border)'};border-radius:12px;transition:all .2s;">
-      <div onclick="toggleHabito(${i})" class="habit-check ${h.done?'done':''}" style="cursor:pointer;">${h.done?'<svg width="12" height="12" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>':''}</div>
-      <div class="editable" style="flex:1;font-size:14px;font-weight:500;text-decoration:${h.done?'line-through':''};opacity:${h.done?.6:1};" onclick="editHabito(${i},this)">${h.label}</div>
+    <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:${h.done?'rgba(34,197,94,0.06)':'var(--card)'};border:1px solid ${h.done?'rgba(34,197,94,0.25)':'var(--border)'};border-radius:12px;transition:all .2s;">
+      <div onclick="toggleHabito(${i})" class="habit-check ${h.done?'done':''}" style="cursor:pointer;flex-shrink:0;">${h.done?'<svg width="12" height="12" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>':''}</div>
+      <span id="hab-lbl-${i}" style="flex:1;font-size:14px;font-weight:500;text-decoration:${h.done?'line-through':''};opacity:${h.done?.6:1};">${h.label}</span>
       <div class="badge ${h.done?'badge-green':'badge-blue'}">+${h.pts}pts</div>
+      <button onclick="editHabito(${i})" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:13px;padding:2px 4px;" title="Editar">✏️</button>
+      <button onclick="deleteHabito(${i})" style="background:none;border:none;cursor:pointer;color:var(--rose);font-size:16px;padding:2px 4px;line-height:1;" title="Excluir">&times;</button>
     </div>
-  `).join('');
+  `).join('')+`
+  <div style="display:flex;gap:8px;margin-top:8px;">
+    <input class="inp" id="hab-new-label" placeholder="Novo hábito..." style="flex:1;" onkeydown="if(event.key==='Enter')addHabito()">
+    <input class="inp" id="hab-new-pts" type="number" placeholder="pts" style="width:70px;" value="10">
+    <button class="btn btn-blue btn-sm" onclick="addHabito()">+ Adicionar</button>
+  </div>`;
   renderHabitosPreview();
   updateScore();
   const sd=document.getElementById('streak-display');
   if(sd) sd.textContent='🔥 '+state.streak;
 }
-function editHabito(i,el){makeEditable(el,v=>state.habitos[i].label=v);}
+function editHabito(i){
+  const el=document.getElementById('hab-lbl-'+i);
+  if(!el) return;
+  makeEditable(el,v=>state.habitos[i].label=v);
+}
+function deleteHabito(i){state.habitos.splice(i,1);saveState();renderHabitos();}
+function addHabito(){
+  const lbl=document.getElementById('hab-new-label');
+  const pts=document.getElementById('hab-new-pts');
+  if(lbl&&lbl.value.trim()){
+    state.habitos.push({id:Date.now(),label:lbl.value.trim(),done:false,pts:parseInt(pts?.value)||10});
+    lbl.value='';if(pts)pts.value='10';
+    saveState();renderHabitos();
+  }
+}
 function toggleHabito(i){
   state.habitos[i].done=!state.habitos[i].done;
   saveState();renderHabitos();
@@ -457,31 +516,61 @@ function renderEspiritual(){
   if(dayEl) dayEl.textContent=`Dia ${c.diaAtual} de 365`;
   if(verEl) verEl.textContent=c.versiculo;
 
+  // Checklist espiritual — checkbox + texto + editar + excluir separados
   const cel=document.getElementById('espiritual-checklist');
   if(cel) cel.innerHTML=c.checklist.map((item,i)=>`
-    <div onclick="toggleEspiritual(${i})" style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:${item.done?'rgba(139,92,246,0.08)':'rgba(255,255,255,0.02)'};border:1px solid ${item.done?'rgba(139,92,246,0.25)':'var(--border)'};border-radius:10px;cursor:pointer;transition:all .2s;">
-      <div class="habit-check ${item.done?'done':''}" style="${item.done?'background:var(--purple);border-color:var(--purple);':''}">${item.done?'<svg width="12" height="12" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>':''}</div>
-      <span class="editable" style="font-size:13px;font-weight:500;text-decoration:${item.done?'line-through':''};opacity:${item.done?.6:1};" onclick="event.stopPropagation();editEspChecklist(${i},this)">${item.label}</span>
-    </div>`).join('');
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:${item.done?'rgba(139,92,246,0.08)':'rgba(255,255,255,0.02)'};border:1px solid ${item.done?'rgba(139,92,246,0.25)':'var(--border)'};border-radius:10px;transition:all .2s;">
+      <div onclick="toggleEspiritual(${i})" class="habit-check ${item.done?'done':''}" style="${item.done?'background:var(--purple);border-color:var(--purple);':''};cursor:pointer;flex-shrink:0;">${item.done?'<svg width="12" height="12" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>':''}</div>
+      <span id="esp-lbl-${i}" style="flex:1;font-size:13px;font-weight:500;text-decoration:${item.done?'line-through':''};opacity:${item.done?.6:1};">${item.label}</span>
+      <button onclick="editEspChecklist(${i})" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:13px;padding:2px 4px;" title="Editar">✏️</button>
+      <button onclick="deleteEspChecklist(${i})" style="background:none;border:none;cursor:pointer;color:var(--rose);font-size:16px;padding:2px 4px;line-height:1;" title="Excluir">&times;</button>
+    </div>`).join('')+`
+    <div style="display:flex;gap:8px;margin-top:8px;">
+      <input class="inp" id="esp-new-item" placeholder="Nova tarefa espiritual..." style="flex:1;font-size:13px;" onkeydown="if(event.key==='Enter')addEspChecklistItem()">
+      <button class="btn btn-blue btn-sm" onclick="addEspChecklistItem()">+ Adicionar</button>
+    </div>`;
 
   const oel=document.getElementById('oracao-list');
   if(oel) oel.innerHTML=c.oracoes.map((o,i)=>`
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:8px;">
-      <span class="editable" style="font-size:13px;" onclick="editOracao(${i},this)">🙏 ${o}</span>
-      <span onclick="removeOracao(${i})" style="cursor:pointer;color:var(--text3);font-size:18px;line-height:1;">&times;</span>
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:8px;">
+      <span style="flex:1;font-size:13px;">🙏 <span id="ora-${i}">${o}</span></span>
+      <button onclick="editOracao(${i})" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:13px;padding:2px 4px;" title="Editar">✏️</button>
+      <button onclick="removeOracao(${i})" style="background:none;border:none;cursor:pointer;color:var(--rose);font-size:16px;padding:2px 4px;line-height:1;" title="Excluir">&times;</button>
     </div>`).join('');
 
   const gel=document.getElementById('gratidao-list');
   if(gel) gel.innerHTML=c.gratidao.map((g,i)=>`
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:8px;">
-      <span class="editable" style="font-size:13px;" onclick="editGratidao(${i},this)">🌟 ${g}</span>
-      <span onclick="removeGratidao(${i})" style="cursor:pointer;color:var(--text3);font-size:18px;line-height:1;">&times;</span>
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:8px;">
+      <span style="flex:1;font-size:13px;">🌟 <span id="gra-${i}">${g}</span></span>
+      <button onclick="editGratidao(${i})" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:13px;padding:2px 4px;" title="Editar">✏️</button>
+      <button onclick="removeGratidao(${i})" style="background:none;border:none;cursor:pointer;color:var(--rose);font-size:16px;padding:2px 4px;line-height:1;" title="Excluir">&times;</button>
     </div>`).join('');
 }
 function toggleEspiritual(i){state.espiritual.checklist[i].done=!state.espiritual.checklist[i].done;saveState();renderEspiritual();}
-function editEspChecklist(i,el){makeEditable(el,v=>state.espiritual.checklist[i].label=v);}
-function editOracao(i,el){makeEditable(el,v=>state.espiritual.oracoes[i]=v.replace(/^🙏\s*/,''));}
-function editGratidao(i,el){makeEditable(el,v=>state.espiritual.gratidao[i]=v.replace(/^🌟\s*/,''));}
+function editEspChecklist(i){
+  const lbl=document.getElementById('esp-lbl-'+i);
+  if(!lbl) return;
+  makeEditable(lbl,v=>{state.espiritual.checklist[i].label=v;});
+}
+function deleteEspChecklist(i){state.espiritual.checklist.splice(i,1);saveState();renderEspiritual();}
+function addEspChecklistItem(){
+  const inp=document.getElementById('esp-new-item');
+  if(inp&&inp.value.trim()){
+    const id='esp_'+Date.now();
+    state.espiritual.checklist.push({id,label:inp.value.trim(),done:false});
+    inp.value='';saveState();renderEspiritual();
+  }
+}
+function editOracao(i){
+  const el=document.getElementById('ora-'+i);
+  if(!el) return;
+  makeEditable(el,v=>state.espiritual.oracoes[i]=v);
+}
+function editGratidao(i){
+  const el=document.getElementById('gra-'+i);
+  if(!el) return;
+  makeEditable(el,v=>state.espiritual.gratidao[i]=v);
+}
 function addOracao(){const inp=document.getElementById('oracao-input');if(inp&&inp.value.trim()){state.espiritual.oracoes.push(inp.value.trim());inp.value='';saveState();renderEspiritual();}}
 function removeOracao(i){state.espiritual.oracoes.splice(i,1);saveState();renderEspiritual();}
 function addGratidao(){const inp=document.getElementById('gratidao-input');if(inp&&inp.value.trim()){state.espiritual.gratidao.push(inp.value.trim());inp.value='';saveState();renderEspiritual();}}
@@ -656,10 +745,16 @@ function renderCasamento(){
 
   const el=document.getElementById('casamento-checklist');
   if(el) el.innerHTML=c.checklist.map((item,i)=>`
-    <div onclick="toggleCasamento(${i})" style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:${item.done?'rgba(244,114,182,0.06)':'rgba(255,255,255,0.02)'};border:1px solid ${item.done?'rgba(244,114,182,0.25)':'var(--border)'};border-radius:10px;cursor:pointer;transition:all .2s;">
-      <div class="habit-check ${item.done?'done':''}" style="${item.done?'background:#f472b6;border-color:#f472b6;':''}">${item.done?'<svg width="12" height="12" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>':''}</div>
-      <span class="editable" style="font-size:13px;text-decoration:${item.done?'line-through':''};opacity:${item.done?.6:1};" onclick="event.stopPropagation();editCasCheck(${i},this)">${item.label}</span>
-    </div>`).join('');
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:${item.done?'rgba(244,114,182,0.06)':'rgba(255,255,255,0.02)'};border:1px solid ${item.done?'rgba(244,114,182,0.25)':'var(--border)'};border-radius:10px;transition:all .2s;">
+      <div onclick="toggleCasamento(${i})" class="habit-check ${item.done?'done':''}" style="${item.done?'background:#f472b6;border-color:#f472b6;':''};cursor:pointer;flex-shrink:0;">${item.done?'<svg width="12" height="12" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>':''}</div>
+      <span id="cas-lbl-${i}" style="flex:1;font-size:13px;text-decoration:${item.done?'line-through':''};opacity:${item.done?.6:1};">${item.label}</span>
+      <button onclick="editCasCheck(${i})" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:13px;padding:2px 4px;" title="Editar">✏️</button>
+      <button onclick="deleteCasCheck(${i})" style="background:none;border:none;cursor:pointer;color:var(--rose);font-size:16px;padding:2px 4px;line-height:1;" title="Excluir">&times;</button>
+    </div>`).join('')+`
+    <div style="display:flex;gap:8px;margin-top:8px;">
+      <input class="inp" id="cas-new-item" placeholder="Nova tarefa do casal..." style="flex:1;font-size:13px;" onkeydown="if(event.key==='Enter')addCasCheck()">
+      <button class="btn btn-ghost btn-sm" onclick="addCasCheck()" style="border-color:rgba(244,114,182,0.3);color:#f472b6;">+ Adicionar</button>
+    </div>`;
 
   const mel=document.getElementById('momentos-list');
   if(mel) mel.innerHTML=c.momentos.slice(0,5).map(m=>`
@@ -668,7 +763,20 @@ function renderCasamento(){
       <div style="font-size:13px;">${m.text}</div>
     </div>`).join('');
 }
-function editCasCheck(i,el){makeEditable(el,v=>state.casamento.checklist[i].label=v);}
+function editCasCheck(i){
+  const lbl=document.getElementById('cas-lbl-'+i);
+  if(!lbl) return;
+  makeEditable(lbl,v=>state.casamento.checklist[i].label=v);
+}
+function deleteCasCheck(i){state.casamento.checklist.splice(i,1);saveState();renderCasamento();}
+function addCasCheck(){
+  const inp=document.getElementById('cas-new-item');
+  if(inp&&inp.value.trim()){
+    const id='c'+Date.now();
+    state.casamento.checklist.push({id,label:inp.value.trim(),done:false});
+    inp.value='';saveState();renderCasamento();
+  }
+}
 function toggleCasamento(i){state.casamento.checklist[i].done=!state.casamento.checklist[i].done;saveState();renderCasamento();}
 function salvarMomento(){
   const t=document.getElementById('momentos-text');
@@ -732,33 +840,90 @@ function renderMetas(){
   el.innerHTML=state.metas.map((m,mi)=>{
     const pct=calcMetaPct(m);
     return `<div class="card">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;gap:8px;">
         <div style="flex:1;">
-          <div class="editable" style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:.05em;margin-bottom:4px;" onclick="editMeta(${mi},'area',this)">${m.area}</div>
-          <div class="editable" style="font-size:15px;font-weight:700;" onclick="editMeta(${mi},'titulo',this)">${m.titulo}</div>
+          <div id="meta-area-${mi}" style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:.05em;margin-bottom:4px;">${m.area}</div>
+          <div id="meta-titulo-${mi}" style="font-size:15px;font-weight:700;">${m.titulo}</div>
         </div>
-        <div class="badge ${m.prioridade==='alta'?'badge-rose':m.prioridade==='media'?'badge-gold':'badge-blue'}">${m.prioridade}</div>
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+          <div class="badge ${m.prioridade==='alta'?'badge-rose':m.prioridade==='media'?'badge-gold':'badge-blue'}">${m.prioridade}</div>
+          <button onclick="editMetaField(${mi},'titulo','meta-titulo-${mi}')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:12px;padding:2px;" title="Editar título">✏️</button>
+          <button onclick="deleteMeta(${mi})" style="background:none;border:none;cursor:pointer;color:var(--rose);font-size:15px;padding:2px;line-height:1;" title="Excluir meta">&times;</button>
+        </div>
       </div>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
         <div style="flex:1;"><div class="progress-track"><div class="progress-fill" style="background:linear-gradient(90deg,var(--blue),var(--purple));width:${pct}%;"></div></div></div>
         <div style="font-size:14px;font-weight:700;color:var(--blue2);min-width:36px;">${pct}%</div>
       </div>
-      <div class="editable" style="font-size:11px;color:var(--text3);margin-bottom:10px;" onclick="editMeta(${mi},'meta',this)">📅 ${m.meta}</div>
-      <div style="display:flex;flex-direction:column;gap:6px;">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:10px;display:flex;align-items:center;gap:4px;">
+        📅 <span id="meta-prazo-${mi}">${m.meta}</span>
+        <button onclick="editMetaField(${mi},'meta','meta-prazo-${mi}')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:11px;padding:1px 3px;" title="Editar prazo">✏️</button>
+      </div>
+      <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Checklist</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;" id="meta-checks-${mi}">
         ${m.checklist.map((c,ci)=>`
-          <div onclick="toggleMetaCheck(${mi},${ci})" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 8px;border-radius:8px;background:${c.d?'rgba(59,130,246,0.06)':'transparent'};border:1px solid ${c.d?'rgba(59,130,246,0.2)':'transparent'};transition:all .2s;">
-            <div class="habit-check ${c.d?'done':''}" style="width:16px;height:16px;border-radius:4px;">${c.d?'<svg width="10" height="10" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>':''}</div>
-            <span class="editable" style="font-size:12px;color:var(--text2);text-decoration:${c.d?'line-through':''};" onclick="event.stopPropagation();editMetaCheck(${mi},${ci},this)">${c.l}</span>
+          <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;background:${c.d?'rgba(59,130,246,0.06)':'transparent'};border:1px solid ${c.d?'rgba(59,130,246,0.2)':'transparent'};transition:all .2s;">
+            <div onclick="toggleMetaCheck(${mi},${ci})" class="habit-check ${c.d?'done':''}" style="width:16px;height:16px;border-radius:4px;cursor:pointer;flex-shrink:0;">${c.d?'<svg width="10" height="10" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>':''}</div>
+            <span id="meta-c-${mi}-${ci}" style="flex:1;font-size:12px;color:var(--text2);text-decoration:${c.d?'line-through':''};">${c.l}</span>
+            <button onclick="editMetaCheck(${mi},${ci})" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:11px;padding:1px 3px;" title="Editar">✏️</button>
+            <button onclick="deleteMetaCheck(${mi},${ci})" style="background:none;border:none;cursor:pointer;color:var(--rose);font-size:14px;padding:1px 3px;line-height:1;" title="Excluir">&times;</button>
           </div>`).join('')}
       </div>
+      <div style="display:flex;gap:6px;">
+        <input class="inp" id="meta-new-${mi}" placeholder="Novo item..." style="flex:1;font-size:12px;padding:7px 10px;" onkeydown="if(event.key==='Enter')addMetaCheck(${mi})">
+        <button class="btn btn-ghost btn-sm" onclick="addMetaCheck(${mi})">+</button>
+      </div>
     </div>`;
-  }).join('');
+  }).join('')+`
+  <div class="card" style="display:flex;flex-direction:column;gap:12px;align-items:flex-start;border-style:dashed;">
+    <div style="font-weight:600;font-size:14px;color:var(--text2);">+ Nova Meta</div>
+    <input class="inp" id="nova-meta-area" placeholder="Área (ex: 💼 Profissional)">
+    <input class="inp" id="nova-meta-titulo" placeholder="Título da meta">
+    <input class="inp" id="nova-meta-prazo" placeholder="Prazo (ex: Dez 2026)">
+    <select class="inp" id="nova-meta-prior">
+      <option value="alta">🔴 Alta prioridade</option>
+      <option value="media">🟡 Média prioridade</option>
+      <option value="baixa">🟢 Baixa prioridade</option>
+    </select>
+    <button class="btn btn-blue" onclick="adicionarMeta()">Criar Meta</button>
+  </div>`;
 }
-function editMeta(mi,field,el){makeEditable(el,v=>state.metas[mi][field]=v.replace(/^📅\s*/,''));}
-function editMetaCheck(mi,ci,el){makeEditable(el,v=>state.metas[mi].checklist[ci].l=v);}
+function editMetaField(mi, field, elId){
+  const el=document.getElementById(elId);
+  if(!el) return;
+  makeEditable(el,v=>state.metas[mi][field]=v);
+}
+function editMetaCheck(mi,ci){
+  const el=document.getElementById(`meta-c-${mi}-${ci}`);
+  if(!el) return;
+  makeEditable(el,v=>state.metas[mi].checklist[ci].l=v);
+}
 function toggleMetaCheck(mi,ci){
   state.metas[mi].checklist[ci].d=!state.metas[mi].checklist[ci].d;
   saveState();renderMetas();
+}
+function deleteMetaCheck(mi,ci){
+  state.metas[mi].checklist.splice(ci,1);
+  saveState();renderMetas();
+}
+function addMetaCheck(mi){
+  const inp=document.getElementById('meta-new-'+mi);
+  if(inp&&inp.value.trim()){
+    state.metas[mi].checklist.push({l:inp.value.trim(),d:false});
+    inp.value='';saveState();renderMetas();
+  }
+}
+function deleteMeta(mi){
+  if(confirm('Excluir esta meta?')){state.metas.splice(mi,1);saveState();renderMetas();}
+}
+function adicionarMeta(){
+  const area=document.getElementById('nova-meta-area').value.trim();
+  const titulo=document.getElementById('nova-meta-titulo').value.trim();
+  const prazo=document.getElementById('nova-meta-prazo').value.trim();
+  const prior=document.getElementById('nova-meta-prior').value;
+  if(!titulo){showNotif('⚠️','Preencha o título!','','var(--gold)');return;}
+  state.metas.push({area:area||'🎯 Geral',titulo,meta:prazo||'Dez 2026',prioridade:prior,checklist:[]});
+  saveState();renderMetas();showNotif('🎯','Meta criada!','','var(--blue)');
 }
 
 // ── RELATÓRIOS ───────────────────────────────────────────────
