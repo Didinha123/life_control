@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Life Control — Diego Silva</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script>
+tailwind.config={theme:{extend:{colors:{blue:'#3b82f6',gold:'#f59e0b',purple:'#8b5cf6'}}}}
+</script>
+</head>
+<body>
+
+<!-- NOTIFICATION -->
+<div class="notif" id="notif">
+  <div class="notif-inner">
+    <div id="notif-icon"></div>
+    <div>
+      <div id="notif-title" style="font-size:13px;font-weight:600;"></div>
+      <div id="notif-msg" style="font-size:12px;color:var(--text2);margin-top:2px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div class="brand">
+    <div class="brand-icon">LC</div>
+    <div class="brand-text">Life Control<span>Diego Silva</span></div>
+  </div>
+  <div style="flex:1;overflow-y:auto;overflow-x:hidden;padding-bottom:16px;">
+    <div class="nav-section">Principal</div>
+    <div class="nav-item active" onclick="nav('home')">
+      <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+      <span class="nav-label">Dashboard</span>
+    </div>
+    <div class="nav-item" onclick="nav('rotina')">
+      <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <span class="nav-label">Rotina</span>
+    </div>
+    <div class="nav-item" onclick="nav('habitos')">
+      <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <span class="nav-label">Hábitos</span>
+    </div>
+    <div class="nav-section">Pessoal</div>
+    <div class="nav-item" onclick="nav('espiritual')">
+      <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+      <span class="nav-label">Vida Espiritual</span>
+    </div>
+    <div class="nav-item" onclick="nav('casamento')">
+      <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+      <span class="nav-label">Casamento</span>
+    </div>
+    <div class="nav-item" onclick="nav('saude')">
+      <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+      <span class="nav-label">Saúde</span>
+    </div>
+    <div class="nav-section">Trabalho</div>
+    <div class="nav-item" onclick="nav('mercadolivre')">
+      <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+      <span class="nav-label">Mercado Livre</span>
+    </div>
+    <div class="nav-item" onclick="nav('projetos')">
+      <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+      <span class="nav-label">Projetos</span>
+    </div>
+    <div class="nav-item" onclick="nav('estudos')">
+      <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+      <span class="nav-label">Estudos</span>
+    </div>
+    <div class="nav-section">Crescimento</div>
+    <div class="nav-item" onclick="nav('lol')">
+      <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+      <span class="nav-label">League of Legends</span>
+    </div>
+    <div class="nav-item" onclick="nav('metas')">
+      <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+      <span class="nav-label">Metas</span>
+    </div>
+    <div class="nav-item" onclick="nav('relatorios')">
+      <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
+      <span class="nav-label">Relatórios</span>
+    </div>
+    <div class="nav-item" onclick="nav('config')">
+      <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      <span class="nav-label">Configurações</span>
+    </div>
+  </div>
+  <div style="padding:16px 12px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+    <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;">D</div>
+    <div class="sidebar-footer-text" style="transition:opacity .2s,width .2s;overflow:hidden;">
+      <div style="font-size:13px;font-weight:600;">Diego Silva</div>
+      <div style="font-size:11px;color:var(--text3);">Nível 7 — Elite</div>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div id="main">
+  <!-- TOPBAR -->
+  <div id="topbar">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <button class="toggle-btn" onclick="toggleSidebar()" id="toggle-btn">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+      <div id="topbar-breadcrumb" style="font-size:14px;font-weight:500;color:var(--text2);">Dashboard</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:6px 12px;">
+        <div class="pulse-dot"></div>
+        <span style="font-size:12px;color:var(--text2);" id="topbar-date"></span>
+      </div>
+      <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;">D</div>
+    </div>
+  </div>
+
+  <!-- ===== HOME ===== -->
+  <div class="section active" id="section-home">
+    <div style="max-width:1100px;margin:0 auto;">
+      <!-- greeting hero -->
+      <div class="card fade-up" style="background:linear-gradient(135deg,rgba(59,130,246,0.08),rgba(139,92,246,0.08));border-color:rgba(139,92,246,0.2);padding:32px;margin-bottom:24px;position:relative;overflow:hidden;">
+        <div style="position:absolute;right:-40px;top:-40px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(139,92,246,0.15),transparent 70%);pointer-events:none;"></div>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:20px;">
+          <div>
+            <div id="greeting-text" style="font-size:32px;font-weight:800;margin-bottom:8px;"></div>
+            <div id="greeting-date" style="font-size:15px;color:var(--text2);margin-bottom:16px;"></div>
+            <div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:12px;padding:14px 18px;max-width:480px;">
+              <div style="font-size:12px;color:var(--text3);font-weight:500;letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px;">Mensagem do Dia</div>
+              <div id="motivational" style="font-size:14px;color:var(--text);font-style:italic;line-height:1.6;"></div>
+            </div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;">Score Diário</div>
+            <div style="position:relative;display:inline-block;">
+              <svg width="120" height="120" viewBox="0 0 120 120" class="score-ring">
+                <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="8"/>
+                <circle cx="60" cy="60" r="50" fill="none" stroke="url(#scoreGrad)" stroke-width="8" stroke-linecap="round"
+                  stroke-dasharray="314" id="score-circle" style="stroke-dashoffset:314;transform:rotate(-90deg);transform-origin:60px 60px;transition:stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1);"/>
+                <defs>
+                  <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#3b82f6"/>
+                    <stop offset="100%" stop-color="#8b5cf6"/>
+                  </linearGradient>
+                </defs>
+              </svg>
+              <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                <div id="score-val" style="font-size:26px;font-weight:800;"></div>
+                <div style="font-size:10px;color:var(--text3);">pontos</div>
+              </div>
+            </div>
+            <div style="margin-top:8px;" class="progress-track"><div class="progress-fill" id="score-bar" style="background:linear-gradient(90deg,var(--blue),var(--purple));width:0%;"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- quick stats row -->
+      <div class="grid-4 fade-up fade-up-d1" style="margin-bottom:24px;">
+        <div class="card" style="text-align:center;">
+          <div style="font-size:28px;margin-bottom:4px;">🔥</div>
+          <div class="stat-val grad-gold" id="stat-streak">12</div>
+          <div class="stat-label">Dias de Streak</div>
+        </div>
+        <div class="card" style="text-align:center;">
+          <div style="font-size:28px;margin-bottom:4px;">✅</div>
+          <div class="stat-val" style="color:var(--green);" id="stat-habitos">0/9</div>
+          <div class="stat-label">Hábitos Hoje</div>
+        </div>
+        <div class="card" style="text-align:center;">
+          <div style="font-size:28px;margin-bottom:4px;">⏱</div>
+          <div class="stat-val grad-blue" id="stat-foco">6h 20m</div>
+          <div class="stat-label">Tempo Produtivo</div>
+        </div>
+        <div class="card" style="text-align:center;">
+          <div style="font-size:28px;margin-bottom:4px;">📚</div>
+          <div class="stat-val" style="color:var(--purple2);" id="stat-estudo">1h 40m</div>
+          <div class="stat-label">Tempo de Estudo</div>
+        </div>
+      </div>
+
+      <!-- 2 col: hoje + próximos -->
+      <div class="grid-2 fade-up fade-up-d2">
+        <div class="card">
+          <div style="font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+            <svg width="16" height="16" fill="none" stroke="var(--blue)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            Próximos na Rotina
+          </div>
+          <div id="home-rotina-preview"></div>
+        </div>
+        <div class="card">
+          <div style="font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+            <svg width="16" height="16" fill="none" stroke="var(--gold)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            Hábitos de Hoje
+          </div>
+          <div id="home-habitos-preview"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== DASHBOARD ===== -->
+  <div class="section" id="section-dashboard">
+    <div style="max-width:1200px;margin:0 auto;">
+      <div class="page-header">
+        <div class="page-title">Dashboard <span class="grad-blue">Completo</span></div>
+        <div class="page-sub">Visão geral de toda sua vida em um só lugar</div>
+      </div>
+      <div class="grid-3 fade-up" style="margin-bottom:24px;">
+        <div class="card"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Horas Produtivas</div><div class="stat-val grad-blue">6h 20m</div><div class="stat-label">Meta: 8h/dia</div><div class="progress-track" style="margin-top:10px;"><div class="progress-fill" style="background:linear-gradient(90deg,var(--blue),var(--cyan));width:79%;"></div></div></div>
+        <div class="card"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Tempo de Estudo</div><div class="stat-val" style="color:var(--purple2);">1h 40m</div><div class="stat-label">Meta: 2h/dia</div><div class="progress-track" style="margin-top:10px;"><div class="progress-fill" style="background:linear-gradient(90deg,var(--purple),var(--purple2));width:83%;"></div></div></div>
+        <div class="card"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Tempo Jogado</div><div class="stat-val grad-gold">1h 20m</div><div class="stat-label">Limite: 2h/dia</div><div class="progress-track" style="margin-top:10px;"><div class="progress-fill" style="background:linear-gradient(90deg,var(--gold),#ef4444);width:67%;"></div></div></div>
+        <div class="card"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Tempo com Esposa</div><div class="stat-val" style="color:#f472b6;">2h 30m</div><div class="stat-label">Meta: 3h/dia</div><div class="progress-track" style="margin-top:10px;"><div class="progress-fill" style="background:linear-gradient(90deg,#ec4899,#f43f5e);width:83%;"></div></div></div>
+        <div class="card"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Devocional</div><div class="stat-val" style="color:var(--green);">✓ Feito</div><div class="stat-label">30 min hoje</div><div class="progress-track" style="margin-top:10px;"><div class="progress-fill" style="background:linear-gradient(90deg,var(--green),var(--cyan));width:100%;"></div></div></div>
+        <div class="card"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Treino Físico</div><div class="stat-val" style="color:#f97316;">45m</div><div class="stat-label">Academia hoje</div><div class="progress-track" style="margin-top:10px;"><div class="progress-fill" style="background:linear-gradient(90deg,#f97316,var(--gold));width:75%;"></div></div></div>
+      </div>
+      <div class="grid-2 fade-up fade-up-d1">
+        <div class="card"><div style="font-weight:600;margin-bottom:16px;">Horas da Semana</div><canvas id="chart-semana" height="180"></canvas></div>
+        <div class="card"><div style="font-weight:600;margin-bottom:16px;">Distribuição do Tempo</div><canvas id="chart-pizza" height="180"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ROTINA ===== -->
+  <div class="section" id="section-rotina">
+    <div style="max-width:700px;margin:0 auto;">
+      <div class="page-header">
+        <div class="page-title">Minha <span class="grad-blue">Rotina</span></div>
+        <div class="page-sub">Linha do tempo diária — marque conforme concluir</div>
+      </div>
+      <div class="timeline" id="rotina-timeline"></div>
+    </div>
+  </div>
+
+  <!-- ===== HÁBITOS ===== -->
+  <div class="section" id="section-habitos">
+    <div style="max-width:800px;margin:0 auto;">
+      <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div>
+          <div class="page-title">Hábitos <span class="grad-gold">Diários</span></div>
+          <div class="page-sub">Cada hábito concluído gera pontos e mantém seu streak</div>
+        </div>
+        <div class="card" style="text-align:center;padding:16px 24px;">
+          <div style="font-size:28px;font-weight:800;" class="grad-gold" id="streak-display">🔥 12</div>
+          <div style="font-size:11px;color:var(--text3);">dias de streak</div>
+        </div>
+      </div>
+      <div id="habitos-list" style="display:flex;flex-direction:column;gap:10px;"></div>
+      <div class="card" style="margin-top:24px;">
+        <div style="font-weight:600;margin-bottom:16px;">Histórico da Semana</div>
+        <canvas id="chart-habitos-semana" height="120"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== VIDA ESPIRITUAL ===== -->
+  <div class="section" id="section-espiritual">
+    <div style="max-width:1000px;margin:0 auto;position:relative;">
+      <div class="spiritual-glow" style="top:-60px;right:-60px;"></div>
+      <div class="page-header">
+        <div class="page-title">Vida <span style="background:linear-gradient(135deg,#c084fc,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Espiritual</span></div>
+        <div class="page-sub">Cuide da sua alma com a mesma dedicação com que cuida de tudo mais</div>
+      </div>
+      <div class="grid-2 fade-up" style="margin-bottom:20px;">
+        <!-- Plano Bíblico -->
+        <div class="card" style="border-color:rgba(139,92,246,0.25);">
+          <div style="font-size:11px;color:var(--purple2);font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:14px;">📖 Plano Bíblico Anual</div>
+          <div style="display:flex;align-items:center;gap:16px;margin-bottom:14px;">
+            <div>
+              <div style="font-size:20px;font-weight:700;" id="biblia-livro">Salmos</div>
+              <div style="font-size:13px;color:var(--text2);" id="biblia-cap">Capítulo 23</div>
+            </div>
+            <div style="flex:1;">
+              <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:4px;"><span>Progresso</span><span id="biblia-pct">34%</span></div>
+              <div class="progress-track"><div class="progress-fill" id="biblia-bar" style="background:linear-gradient(90deg,var(--purple),var(--blue));width:34%;"></div></div>
+              <div style="font-size:11px;color:var(--text3);margin-top:4px;">124 de 365 dias</div>
+            </div>
+          </div>
+          <div style="background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.15);border-radius:10px;padding:12px;">
+            <div style="font-size:11px;color:var(--purple2);margin-bottom:4px;">Versículo Favorito</div>
+            <div style="font-size:13px;font-style:italic;line-height:1.5;color:var(--text);" id="versiculo-fav">"O Senhor é o meu pastor, nada me faltará." — Sl 23:1</div>
+          </div>
+        </div>
+        <!-- Checklist Espiritual -->
+        <div class="card" style="border-color:rgba(139,92,246,0.25);">
+          <div style="font-size:11px;color:var(--purple2);font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:14px;">✝️ Checklist Espiritual</div>
+          <div id="espiritual-checklist" style="display:flex;flex-direction:column;gap:10px;"></div>
+        </div>
+      </div>
+      <div class="grid-2 fade-up fade-up-d1">
+        <!-- Pedidos de Oração -->
+        <div class="card" style="border-color:rgba(139,92,246,0.25);">
+          <div style="font-size:11px;color:var(--purple2);font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:14px;">🙏 Pedidos de Oração</div>
+          <div id="oracao-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+          <div style="display:flex;gap:8px;margin-top:12px;">
+            <input class="inp" id="oracao-input" placeholder="Novo pedido..." style="flex:1;">
+            <button class="btn btn-blue" onclick="addOracao()">+</button>
+          </div>
+        </div>
+        <!-- Gratidão -->
+        <div class="card" style="border-color:rgba(139,92,246,0.25);">
+          <div style="font-size:11px;color:var(--purple2);font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:14px;">🌟 Motivos de Gratidão</div>
+          <div id="gratidao-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+          <div style="display:flex;gap:8px;margin-top:12px;">
+            <input class="inp" id="gratidao-input" placeholder="Hoje sou grato por..." style="flex:1;">
+            <button class="btn btn-blue" onclick="addGratidao()">+</button>
+          </div>
+        </div>
+      </div>
+      <div class="card fade-up fade-up-d2" style="margin-top:20px;border-color:rgba(139,92,246,0.25);">
+        <div style="font-weight:600;margin-bottom:16px;">📊 Semana Espiritual</div>
+        <canvas id="chart-espiritual" height="120"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MERCADO LIVRE ===== -->
+  <div class="section" id="section-mercadolivre">
+    <div style="max-width:1200px;margin:0 auto;">
+      <div class="page-header">
+        <div class="page-title">Mercado <span style="background:linear-gradient(135deg,#fbbf24,#f59e0b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Livre</span></div>
+        <div class="page-sub">Painel profissional de gestão — Projetos, Automações e Indicadores</div>
+      </div>
+      <!-- KPIs -->
+      <div class="grid-4 fade-up" style="margin-bottom:24px;">
+        <div class="card" style="border-color:rgba(245,158,11,0.2);"><div style="font-size:11px;color:var(--gold);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Projetos Ativos</div><div class="stat-val grad-gold">5</div><div class="stat-label">2 em sprint</div></div>
+        <div class="card" style="border-color:rgba(245,158,11,0.2);"><div style="font-size:11px;color:var(--gold);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Automações</div><div class="stat-val grad-gold">12</div><div class="stat-label">GAS rodando</div></div>
+        <div class="card" style="border-color:rgba(245,158,11,0.2);"><div style="font-size:11px;color:var(--gold);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Tarefas Semana</div><div class="stat-val grad-gold">18</div><div class="stat-label">7 concluídas</div></div>
+        <div class="card" style="border-color:rgba(245,158,11,0.2);"><div style="font-size:11px;color:var(--gold);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Dashboards</div><div class="stat-val grad-gold">4</div><div class="stat-label">ativos no Looker</div></div>
+      </div>
+      <!-- Kanban -->
+      <div style="font-weight:600;margin-bottom:14px;">Kanban de Tarefas</div>
+      <div style="display:flex;gap:16px;overflow-x:auto;padding-bottom:8px;" id="ml-kanban"></div>
+    </div>
+  </div>
+
+  <!-- ===== PROJETOS ===== -->
+  <div class="section" id="section-projetos">
+    <div style="max-width:1200px;margin:0 auto;">
+      <div class="page-header">
+        <div class="page-title">Meus <span class="grad-blue">Projetos</span></div>
+        <div class="page-sub">Gerencie todos seus projetos com checklists e progresso</div>
+      </div>
+      <div class="grid-2 fade-up" id="projetos-grid"></div>
+    </div>
+  </div>
+
+  <!-- ===== ESTUDOS ===== -->
+  <div class="section" id="section-estudos">
+    <div style="max-width:900px;margin:0 auto;">
+      <div class="page-header">
+        <div class="page-title">Área de <span class="grad-blue">Estudos</span></div>
+        <div class="page-sub">Rastreie seu aprendizado e evolução contínua</div>
+      </div>
+      <div class="grid-3 fade-up" style="margin-bottom:24px;">
+        <div class="card"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Horas essa semana</div><div class="stat-val grad-blue">11h 40m</div></div>
+        <div class="card"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Streak de estudo</div><div class="stat-val grad-gold">🔥 8</div></div>
+        <div class="card"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Cursos em andamento</div><div class="stat-val" style="color:var(--purple2);">3</div></div>
+      </div>
+      <div class="grid-2 fade-up fade-up-d1">
+        <div class="card">
+          <div style="font-weight:600;margin-bottom:14px;">📚 Cursos em Andamento</div>
+          <div id="cursos-list" style="display:flex;flex-direction:column;gap:12px;"></div>
+        </div>
+        <div class="card">
+          <div style="font-weight:600;margin-bottom:14px;">Horas de Estudo — Semana</div>
+          <canvas id="chart-estudos" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== LEAGUE OF LEGENDS ===== -->
+  <div class="section" id="section-lol">
+    <div style="max-width:1100px;margin:0 auto;">
+      <!-- hero banner -->
+      <div style="background:linear-gradient(135deg,#0a0014,#1a0035,#0a0020);border:1px solid rgba(139,92,246,0.3);border-radius:20px;padding:32px;margin-bottom:24px;position:relative;overflow:hidden;" class="fade-up">
+        <div style="position:absolute;inset:0;background:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><defs><radialGradient id=%22g%22><stop offset=%220%25%22 stop-color=%22%238b5cf6%22 stop-opacity=%220.2%22/><stop offset=%22100%25%22 stop-color=%22transparent%22/></radialGradient></defs><circle cx=%2280%22 cy=%2240%22 r=%2260%22 fill=%22url(%23g)%22/></svg>');background-size:cover;pointer-events:none;"></div>
+        <div style="position:relative;display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:20px;">
+          <div>
+            <div style="font-size:11px;font-weight:600;letter-spacing:.1em;color:var(--purple2);text-transform:uppercase;margin-bottom:8px;">⚔️ League of Legends</div>
+            <div style="font-size:32px;font-weight:800;margin-bottom:4px;">Jinx — ADC Main</div>
+            <div style="font-size:14px;color:var(--text2);margin-bottom:16px;">Objetivo: Diamante IV → Diamante III</div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <div class="badge badge-purple">🥇 Ouro II</div>
+              <div class="badge badge-blue">54% WR</div>
+              <div class="badge badge-green" id="lol-days-tilt">🧘 5 dias sem tilt</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;">
+            <div class="card" style="text-align:center;padding:16px 20px;min-width:90px;background:rgba(255,255,255,0.04);">
+              <div style="font-size:22px;font-weight:800;color:var(--purple2);" id="lol-partidas-semana">0</div>
+              <div style="font-size:11px;color:var(--text3);">Partidas</div>
+            </div>
+            <div class="card" style="text-align:center;padding:16px 20px;min-width:90px;background:rgba(255,255,255,0.04);">
+              <div style="font-size:22px;font-weight:800;color:var(--green);" id="lol-wr">--%</div>
+              <div style="font-size:11px;color:var(--text3);">Win Rate</div>
+            </div>
+            <div class="card" style="text-align:center;padding:16px 20px;min-width:90px;background:rgba(255,255,255,0.04);">
+              <div style="font-size:22px;font-weight:800;color:var(--gold);" id="lol-farm">0</div>
+              <div style="font-size:11px;color:var(--text3);">CS/min</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- champion pool + treino -->
+      <div class="grid-2 fade-up fade-up-d1" style="margin-bottom:20px;">
+        <div class="card" style="border-color:rgba(139,92,246,0.2);">
+          <div style="font-weight:600;margin-bottom:14px;color:var(--purple2);">Champion Pool</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.15);border-radius:10px;">
+              <div style="display:flex;align-items:center;gap:10px;"><div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#7c3aed,#4f46e5);display:flex;align-items:center;justify-content:center;font-size:18px;">⚡</div><div><div style="font-weight:600;">Jinx</div><div style="font-size:11px;color:var(--text3);">Main • ADC</div></div></div>
+              <div class="badge badge-purple">Main</div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;">
+              <div style="display:flex;align-items:center;gap:10px;"><div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#1d4ed8,#0284c7);display:flex;align-items:center;justify-content:center;font-size:18px;">🏹</div><div><div style="font-weight:600;">Caitlyn</div><div style="font-size:11px;color:var(--text3);">Secundário • ADC</div></div></div>
+              <div class="badge badge-blue">Flex</div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;">
+              <div style="display:flex;align-items:center;gap:10px;"><div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#be123c,#9f1239);display:flex;align-items:center;justify-content:center;font-size:18px;">🎯</div><div><div style="font-weight:600;">Miss Fortune</div><div style="font-size:11px;color:var(--text3);">Situacional • ADC</div></div></div>
+              <div class="badge badge-rose">Situacional</div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="border-color:rgba(139,92,246,0.2);">
+          <div style="font-weight:600;margin-bottom:14px;color:var(--purple2);">Foco de Treino Hoje</div>
+          <div id="lol-treino-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+        </div>
+      </div>
+      <!-- registro de partida -->
+      <div class="card fade-up fade-up-d2" style="border-color:rgba(139,92,246,0.2);margin-bottom:20px;">
+        <div style="font-weight:600;margin-bottom:16px;">+ Registrar Partida</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:12px;">
+          <select class="inp" id="lol-result"><option value="win">✅ Vitória</option><option value="loss">❌ Derrota</option></select>
+          <input class="inp" id="lol-kda" placeholder="KDA (ex: 8/2/10)">
+          <input class="inp" id="lol-cs" placeholder="CS/min (ex: 7.2)">
+          <input class="inp" id="lol-dano" placeholder="Dano (ex: 28000)">
+          <input class="inp" id="lol-tempo" placeholder="Tempo (ex: 32min)">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+          <input class="inp" id="lol-certo" placeholder="O que fiz certo...">
+          <input class="inp" id="lol-melhorar" placeholder="O que melhorar...">
+        </div>
+        <button class="btn btn-blue" onclick="registrarPartida()">Registrar Partida</button>
+      </div>
+      <!-- histórico -->
+      <div class="card fade-up fade-up-d3" style="border-color:rgba(139,92,246,0.2);">
+        <div style="font-weight:600;margin-bottom:16px;">Histórico de Partidas</div>
+        <div id="lol-historico"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CASAMENTO ===== -->
+  <div class="section" id="section-casamento">
+    <div style="max-width:900px;margin:0 auto;">
+      <div class="page-header">
+        <div class="page-title">💍 <span style="background:linear-gradient(135deg,#f472b6,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Casamento</span></div>
+        <div class="page-sub">Nutra seu relacionamento com intenção e amor</div>
+      </div>
+      <div class="grid-3 fade-up" style="margin-bottom:20px;">
+        <div class="card" style="border-color:rgba(244,114,182,0.2);text-align:center;"><div style="font-size:32px;margin-bottom:4px;">💕</div><div class="stat-val" style="color:#f472b6;">3 anos</div><div class="stat-label">juntos</div></div>
+        <div class="card" style="border-color:rgba(244,114,182,0.2);text-align:center;"><div style="font-size:32px;margin-bottom:4px;">📅</div><div class="stat-val" style="color:#f472b6;" id="casamento-encontro">Qui</div><div class="stat-label">próximo encontro</div></div>
+        <div class="card" style="border-color:rgba(244,114,182,0.2);text-align:center;"><div style="font-size:32px;margin-bottom:4px;">🎯</div><div class="stat-val" style="color:#f472b6;">5/7</div><div class="stat-label">checklist semana</div></div>
+      </div>
+      <div class="grid-2 fade-up fade-up-d1">
+        <div class="card" style="border-color:rgba(244,114,182,0.2);">
+          <div style="font-weight:600;margin-bottom:14px;color:#f472b6;">💞 Checklist Semanal</div>
+          <div id="casamento-checklist" style="display:flex;flex-direction:column;gap:10px;"></div>
+        </div>
+        <div class="card" style="border-color:rgba(244,114,182,0.2);">
+          <div style="font-weight:600;margin-bottom:14px;color:#f472b6;">🌹 Datas Importantes</div>
+          <div id="casamento-datas" style="display:flex;flex-direction:column;gap:10px;"></div>
+        </div>
+      </div>
+      <div class="card fade-up fade-up-d2" style="margin-top:20px;border-color:rgba(244,114,182,0.2);">
+        <div style="font-weight:600;margin-bottom:14px;color:#f472b6;">💝 Momentos Especiais</div>
+        <textarea class="inp" id="momentos-text" rows="4" placeholder="Registre um momento especial de hoje..."></textarea>
+        <div style="display:flex;gap:8px;margin-top:10px;justify-content:flex-end;">
+          <button class="btn btn-ghost" onclick="salvarMomento()">Salvar</button>
+        </div>
+        <div id="momentos-list" style="margin-top:14px;display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SAÚDE ===== -->
+  <div class="section" id="section-saude">
+    <div style="max-width:1000px;margin:0 auto;">
+      <div class="page-header">
+        <div class="page-title">Saúde & <span style="background:linear-gradient(135deg,var(--green),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Bem-estar</span></div>
+        <div class="page-sub">Monitore seu corpo e mente com dados reais</div>
+      </div>
+      <!-- quick inputs -->
+      <div class="card fade-up" style="margin-bottom:20px;border-color:rgba(34,197,94,0.2);">
+        <div style="font-weight:600;margin-bottom:14px;">📊 Registro de Hoje</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;">
+          <div><div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Peso (kg)</div><input class="inp" id="saude-peso" type="number" placeholder="75.5" onchange="salvarSaude()"></div>
+          <div><div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Água (ml)</div><input class="inp" id="saude-agua" type="number" placeholder="2500" onchange="salvarSaude()"></div>
+          <div><div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Sono (h)</div><input class="inp" id="saude-sono" type="number" placeholder="7.5" onchange="salvarSaude()"></div>
+          <div><div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Exercício (min)</div><input class="inp" id="saude-exercicio" type="number" placeholder="45" onchange="salvarSaude()"></div>
+          <div><div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Passos</div><input class="inp" id="saude-passos" type="number" placeholder="8000" onchange="salvarSaude()"></div>
+          <div><div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Humor (1-10)</div><input class="inp" id="saude-humor" type="number" min="1" max="10" placeholder="8" onchange="salvarSaude()"></div>
+        </div>
+      </div>
+      <div class="grid-2 fade-up fade-up-d1">
+        <div class="card" style="border-color:rgba(34,197,94,0.2);">
+          <div style="font-weight:600;margin-bottom:16px;">Semana — Peso & Sono</div>
+          <canvas id="chart-saude" height="200"></canvas>
+        </div>
+        <div class="card" style="border-color:rgba(34,197,94,0.2);">
+          <div style="font-weight:600;margin-bottom:14px;">Metas de Saúde</div>
+          <div id="saude-metas" style="display:flex;flex-direction:column;gap:14px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== METAS ===== -->
+  <div class="section" id="section-metas">
+    <div style="max-width:1000px;margin:0 auto;">
+      <div class="page-header">
+        <div class="page-title">Metas <span class="grad-gold">2026</span></div>
+        <div class="page-sub">Seus grandes objetivos do ano — acompanhe e conquiste</div>
+      </div>
+      <div class="grid-2 fade-up" id="metas-grid"></div>
+    </div>
+  </div>
+
+  <!-- ===== RELATÓRIOS ===== -->
+  <div class="section" id="section-relatorios">
+    <div style="max-width:1200px;margin:0 auto;">
+      <div class="page-header">
+        <div class="page-title">Relatórios & <span class="grad-blue">Analytics</span></div>
+        <div class="page-sub">Visualize sua evolução com dados completos</div>
+      </div>
+      <div class="grid-4 fade-up" style="margin-bottom:24px;">
+        <div class="card"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Horas Estudadas</div><div class="stat-val grad-blue">48h</div><div class="stat-label">este mês</div></div>
+        <div class="card"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Horas Jogadas</div><div class="stat-val grad-gold">18h</div><div class="stat-label">este mês</div></div>
+        <div class="card"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Tempo Produtivo</div><div class="stat-val" style="color:var(--green);">180h</div><div class="stat-label">este mês</div></div>
+        <div class="card"><div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Hábitos Cumpridos</div><div class="stat-val" style="color:var(--purple2);">87%</div><div class="stat-label">taxa do mês</div></div>
+      </div>
+      <div class="grid-2 fade-up fade-up-d1" style="margin-bottom:20px;">
+        <div class="card"><div style="font-weight:600;margin-bottom:16px;">Evolução Mensal</div><canvas id="chart-mensal" height="200"></canvas></div>
+        <div class="card"><div style="font-weight:600;margin-bottom:16px;">Radar de Vida</div><canvas id="chart-radar" height="200"></canvas></div>
+      </div>
+      <div class="card fade-up fade-up-d2">
+        <div style="font-weight:600;margin-bottom:16px;">Heat Map — Hábitos (últimas 12 semanas)</div>
+        <div id="heatmap" style="overflow-x:auto;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CONFIGURAÇÕES ===== -->
+  <div class="section" id="section-config">
+    <div style="max-width:700px;margin:0 auto;">
+      <div class="page-header">
+        <div class="page-title">Configurações</div>
+        <div class="page-sub">Personalize seu Life Control</div>
+      </div>
+      <div class="card fade-up" style="margin-bottom:16px;">
+        <div style="font-weight:600;margin-bottom:14px;">Perfil</div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div><div style="font-size:12px;color:var(--text2);margin-bottom:6px;">Nome</div><input class="inp" value="Diego Silva"></div>
+          <div><div style="font-size:12px;color:var(--text2);margin-bottom:6px;">Meta de Horas Produtivas</div><input class="inp" type="number" value="8" placeholder="horas/dia"></div>
+          <div><div style="font-size:12px;color:var(--text2);margin-bottom:6px;">Meta de Estudo</div><input class="inp" type="number" value="2" placeholder="horas/dia"></div>
+          <div><div style="font-size:12px;color:var(--text2);margin-bottom:6px;">Limite de LoL</div><input class="inp" type="number" value="2" placeholder="horas/dia"></div>
+        </div>
+      </div>
+      <div class="card fade-up fade-up-d1" style="margin-bottom:16px;">
+        <div style="font-weight:600;margin-bottom:14px;">Dados</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn btn-ghost" onclick="exportarDados()">Exportar JSON</button>
+          <button class="btn btn-ghost" onclick="limparDados()" style="color:var(--rose);border-color:rgba(244,63,94,0.3);">Limpar tudo</button>
+        </div>
+      </div>
+      <div class="card fade-up fade-up-d2">
+        <div style="font-weight:600;margin-bottom:10px;">Sobre</div>
+        <div style="font-size:13px;color:var(--text2);line-height:1.7;">Life Control v1.0 • Desenvolvido com 💙 para Diego Silva<br>Todos os dados são salvos localmente no seu navegador.</div>
+      </div>
+    </div>
+  </div>
+</div><!-- /main -->
+<script src="app.js" defer></script>
+</body>
+</html>
