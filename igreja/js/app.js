@@ -1,0 +1,1020 @@
+/* ============================================================
+   GESTÃO IASD — app.js
+   Sistema de gestão da igreja (100% offline, dados no navegador)
+   ============================================================ */
+'use strict';
+
+const KEY = 'iasd-gestao-v1';
+
+/* ---------------- UTILITÁRIOS ---------------- */
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const brl = v => (Number(v) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const num = v => { const n = parseFloat(String(v ?? '').replace(',', '.')); return isNaN(n) ? 0 : n; };
+const pad = n => String(n).padStart(2, '0');
+const isoOf = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const todayISO = () => isoOf(new Date());
+const monthISO = () => todayISO().slice(0, 7);
+const fmtD = iso => { if (!iso) return ''; const [y, m, d] = iso.split('-'); return `${d}/${m}/${y}`; };
+const dateObj = iso => new Date(iso + 'T12:00:00');
+const WD = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+const WD_FULL = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+const MES_AB = MESES.map(m => m.slice(0, 3));
+const weekday = iso => iso ? WD[dateObj(iso).getDay()] : '';
+const nextSabbath = () => { const d = new Date(); d.setDate(d.getDate() + (6 - d.getDay() + 7) % 7); return isoOf(d); };
+const monthLabel = ym => { const [y, m] = ym.split('-'); return `${MESES[+m - 1]} de ${y}`; };
+const minutesOf = hhmm => { if (!hhmm) return null; const [h, m] = hhmm.split(':').map(Number); return h * 60 + m; };
+const fmtSecs = s => { const neg = s < 0; s = Math.abs(Math.round(s)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), ss = s % 60; return (neg ? '-' : '') + (h ? h + ':' + pad(m) : m) + ':' + pad(ss); };
+
+function toast(msg, err) {
+  const t = $('#toast');
+  t.textContent = msg; t.className = 'show' + (err ? ' err' : '');
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.className = '', 2600);
+}
+function download(name, content, type = 'application/json') {
+  const blob = new Blob([content], { type: type + ';charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+/* ---------------- CONSTANTES DA IGREJA ---------------- */
+const CULTOS = ['Sábado — Manhã', 'Sábado — Tarde', 'Sexta — Pôr do sol', 'Quarta-feira', 'Domingo', 'Programa especial'];
+
+const DEPTOS = [
+  { id: 'ancionato', nome: 'Ancionato', ico: '📖', desc: 'Anciãos da igreja: liderança espiritual, plataforma, visitação e apoio pastoral.' },
+  { id: 'jovem', nome: 'Ministério Jovem', ico: '🔥', desc: 'Sociedade de Jovens, cultos JA, pequenos grupos e ações missionárias.' },
+  { id: 'crianca', nome: 'Ministério da Criança', ico: '🧸', desc: 'Adoração infantil, classes infantis, Escola Cristã de Férias.' },
+  { id: 'mulher', nome: 'Ministério da Mulher', ico: '🌷', desc: 'Encontros, Quebrando o Silêncio, dia de oração e projetos.' },
+  { id: 'diaconato', nome: 'Diaconato', ico: '🤝', desc: 'Diáconos e diaconisas: recepção, ordem, Santa Ceia, batismos e zeladoria.' },
+  { id: 'escola', nome: 'Escola Sabatina', ico: '📚', desc: 'Classes, professores, lição, frequência e Informativo Mundial das Missões.' },
+  { id: 'saude', nome: 'Ministério da Saúde', ico: '🍎', desc: 'Momento de saúde no culto, feiras de saúde e programas de prevenção.' },
+];
+const CLUBES = [
+  { id: 'desbravadores', nome: 'Clube de Desbravadores', curto: 'Desbravadores', ico: '⛺', desc: 'Ministério com caixa próprio e atividades exclusivas do clube (10 a 15 anos).' },
+  { id: 'aventureiros', nome: 'Clube de Aventureiros', curto: 'Aventureiros', ico: '🎒', desc: 'Ministério com caixa próprio e atividades exclusivas do clube (6 a 9 anos).' },
+];
+const CAIXAS = { igreja: 'Igreja (Tesouraria)', desbravadores: 'Desbravadores', aventureiros: 'Aventureiros', asa: 'ASA' };
+const CATS = {
+  igreja: ['Dízimo', 'Oferta Regular', 'Oferta Missionária', 'Pacto', 'Oferta de Gratidão', 'Construção / Reforma', 'Outras entradas',
+    'Repasse à Associação', 'Água / Luz / Internet', 'Manutenção', 'Material de limpeza', 'Material de som / mídia', 'Outras despesas'],
+  desbravadores: ['Mensalidade', 'Inscrição', 'Uniforme', 'Campanha / Venda', 'Doação', 'Campori / Acampamento', 'Especialidades / Material', 'Transporte', 'Alimentação', 'Outras despesas'],
+  aventureiros: ['Mensalidade', 'Inscrição', 'Uniforme', 'Campanha / Venda', 'Doação', 'Acampamento / Passeio', 'Especialidades / Material', 'Transporte', 'Alimentação', 'Outras despesas'],
+  asa: ['Doação em dinheiro', 'Campanha / Bazar', 'Compra de alimentos', 'Compra de produtos de higiene', 'Transporte', 'Outras despesas'],
+};
+const UNIDADES = ['kg', 'un', 'L', 'pacote', 'lata', 'caixa', 'cesta básica', 'peça (roupa)'];
+const ITENS_ASA = ['Arroz', 'Feijão', 'Óleo', 'Açúcar', 'Macarrão', 'Leite', 'Café', 'Farinha', 'Sal', 'Fubá', 'Sardinha', 'Biscoito', 'Cesta básica', 'Sabonete', 'Creme dental', 'Sabão em pó', 'Papel higiênico', 'Roupas', 'Cobertor'];
+
+/* Roteiro padrão — transcrito do bloco de notas "Doxologia IASD MB.txt" */
+const ROTEIRO_PADRAO = [
+  { hora: '08:45', titulo: 'Hinos (até 08:55)', hino: '', obs: '' },
+  { hora: '08:55', titulo: 'Informativo Mundial das Missões (vídeo)', hino: '', obs: '' },
+  { hora: '09:00', titulo: 'Escola Sabatina (até 10:00)', hino: '', obs: '' },
+  { hora: '', titulo: 'Hino de final da Escola Sabatina', hino: '', obs: '' },
+  { hora: '10:10', titulo: 'Adoração Infantil', hino: '', obs: '' },
+  { hora: '10:20', titulo: 'Anúncios', hino: '', obs: '' },
+  { hora: '10:30', titulo: 'Momento de Saúde', hino: '', obs: '' },
+  { hora: '10:35', titulo: 'Louvor congregacional', hino: '', obs: '' },
+  { hora: '10:40', titulo: 'Entrada da Plataforma', hino: '', obs: '' },
+  { hora: '10:45', titulo: 'Provai e Vede', hino: '', obs: '' },
+  { hora: '10:50', titulo: 'Hino dos Dízimos e Ofertas', hino: '', obs: 'Ir baixando o som na 2ª estrofe' },
+  { hora: '10:53', titulo: 'Hino de Invocação', hino: '561', obs: '' },
+  { hora: '10:56', titulo: 'Oração dos Dízimos e Ofertas', hino: '', obs: '' },
+  { hora: '', titulo: 'Hino escolhido pela plataforma (após a oração)', hino: '', obs: '' },
+  { hora: '11:00', titulo: 'Oração de joelhos', hino: '', obs: 'Após a oração, deixar o hino 585 engatilhado' },
+  { hora: '', titulo: 'Hino após a oração', hino: '585', obs: '' },
+  { hora: '11:05', titulo: 'Pregação — Pastor', hino: '', obs: '' },
+  { hora: '', titulo: 'Hino final (escolhido pelo pregador)', hino: '', obs: '' },
+  { hora: '11:50', titulo: 'Oração de encerramento', hino: '', obs: '' },
+  { hora: '', titulo: 'Hino de saída', hino: '600', obs: '' },
+];
+const CHECKLIST_PADRAO = [
+  'Ligar mesa de som, amplificadores e caixas',
+  'Testar microfones (púlpito, plataforma, sem fio)',
+  'Conferir pilhas/baterias reserva dos microfones sem fio',
+  'Ligar computador e projetor / TV',
+  'Baixar e testar o vídeo do Informativo Mundial das Missões',
+  'Separar os hinos do dia (561, 585, 600 e os escolhidos)',
+  'Testar vídeo/música da Adoração Infantil',
+  'Conferir volume do retorno da plataforma',
+  'Confirmar hino final com o pregador',
+  'Verificar transmissão online (se houver)',
+];
+
+/* ---------------- BANCO DE DADOS (localStorage) ---------------- */
+function novoRoteiro(nome, itens) {
+  return { id: uid(), nome, itens: itens.map(i => ({ ...i, id: uid() })) };
+}
+function defaults() {
+  const prog = novoRoteiro('Sábado — Manhã (Doxologia)', ROTEIRO_PADRAO);
+  return {
+    versao: 1,
+    config: { igreja: 'IASD', cidade: '', tema: 'light' },
+    membros: [], financeiro: [],
+    escalaMusica: [], escalaAdoracao: [], escalaSom: [], informativos: [],
+    atividades: [], equipe: [], clubeMembros: [],
+    asaDoacoes: [], asaDistribuicoes: [], asaFamilias: [],
+    notas: {},
+    programas: [prog],
+    checklist: CHECKLIST_PADRAO.map(t => ({ id: uid(), texto: t })),
+    aoVivo: { data: '', programa: prog.id, feitos: [], check: [] },
+  };
+}
+function load() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) return Object.assign(defaults(), JSON.parse(raw));
+  } catch (e) { console.error(e); }
+  return defaults();
+}
+let DB = load();
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(DB)); }
+  catch (e) { toast('Erro ao salvar: ' + e.message, true); }
+}
+
+const UI = { showPast: false, mes: monthISO(), roteiro: null };
+
+/* ---------------- ESQUEMAS (formulários e tabelas) ---------------- */
+const memberNames = () => DB.membros.map(m => m.nome).filter(Boolean).sort();
+const STATUS_ATV = ['Planejada', 'Confirmada', 'Realizada', 'Cancelada'];
+
+const SCHEMA = {
+  financeiro: {
+    nome: 'Lançamento', fields: [
+      { k: 'data', l: 'Data', t: 'date', req: 1, def: todayISO },
+      { k: 'natureza', l: 'Tipo', t: 'select', opts: ['Entrada', 'Saída'], def: 'Entrada' },
+      { k: 'categoria', l: 'Categoria', t: 'text', req: 1, list: ref => CATS[ref] || [] },
+      { k: 'descricao', l: 'Descrição', t: 'text' },
+      { k: 'pessoa', l: 'Pessoa / Fornecedor', t: 'text', list: memberNames },
+      { k: 'forma', l: 'Forma', t: 'select', opts: ['Dinheiro', 'PIX', 'Envelope', 'Cartão', 'Transferência', 'Outro'] },
+      { k: 'valor', l: 'Valor (R$)', t: 'money', req: 1 },
+    ]
+  },
+  escalaAdoracao: {
+    nome: 'Escala de adoração', fields: [
+      { k: 'data', l: 'Data', t: 'date', req: 1, def: nextSabbath },
+      { k: 'culto', l: 'Culto', t: 'select', opts: CULTOS },
+      { k: 'plataforma', l: 'Plataforma / Ancião do dia', t: 'text', list: memberNames },
+      { k: 'pregador', l: 'Pregador', t: 'text', list: memberNames },
+      { k: 'boasVindas', l: 'Boas-vindas', t: 'text', list: memberNames },
+      { k: 'adoracaoInfantil', l: 'Adoração infantil', t: 'text', list: memberNames },
+      { k: 'anuncios', l: 'Anúncios', t: 'text', list: memberNames },
+      { k: 'saude', l: 'Momento de saúde', t: 'text', list: memberNames },
+      { k: 'provai', l: 'Provai e Vede / Dízimos', t: 'text', list: memberNames },
+      { k: 'oracao', l: 'Oração intercessora', t: 'text', list: memberNames },
+      { k: 'diaconos', l: 'Diáconos / Recepção', t: 'text' },
+      { k: 'obs', l: 'Observações', t: 'textarea' },
+    ]
+  },
+  escalaMusica: {
+    nome: 'Escala de música', fields: [
+      { k: 'data', l: 'Data', t: 'date', req: 1, def: nextSabbath },
+      { k: 'culto', l: 'Culto', t: 'select', opts: CULTOS },
+      { k: 'louvor', l: 'Louvor congregacional (dirigente)', t: 'text', list: memberNames },
+      { k: 'especial', l: 'Música especial (cantor/grupo)', t: 'text', list: memberNames },
+      { k: 'instrumentista', l: 'Instrumentista / Pianista', t: 'text', list: memberNames },
+      { k: 'hinos', l: 'Hinos / músicas', t: 'text' },
+      { k: 'obs', l: 'Observações', t: 'textarea' },
+    ]
+  },
+  escalaSom: {
+    nome: 'Escala de sonoplastia', fields: [
+      { k: 'data', l: 'Data', t: 'date', req: 1, def: nextSabbath },
+      { k: 'culto', l: 'Culto', t: 'select', opts: CULTOS },
+      { k: 'sonoplasta', l: 'Sonoplasta (mesa)', t: 'text', list: memberNames },
+      { k: 'projecao', l: 'Projeção / Multimídia', t: 'text', list: memberNames },
+      { k: 'transmissao', l: 'Transmissão / Câmera', t: 'text', list: memberNames },
+      { k: 'obs', l: 'Observações', t: 'textarea' },
+    ]
+  },
+  informativos: {
+    nome: 'Informativo', fields: [
+      { k: 'data', l: 'Sábado de exibição', t: 'date', req: 1, def: nextSabbath },
+      { k: 'titulo', l: 'Título / País', t: 'text', req: 1 },
+      { k: 'trimestre', l: 'Trimestre', t: 'select', opts: ['1º trimestre', '2º trimestre', '3º trimestre', '4º trimestre'], def: () => `${Math.floor(new Date().getMonth() / 3) + 1}º trimestre` },
+      { k: 'link', l: 'Link do vídeo', t: 'url' },
+      { k: 'arquivo', l: 'Arquivo no computador (nome/pasta)', t: 'text' },
+      { k: 'status', l: 'Situação', t: 'select', opts: ['Pendente', 'Baixado', 'Exibido'], def: 'Pendente' },
+      { k: 'obs', l: 'Observações', t: 'textarea' },
+    ]
+  },
+  membros: {
+    nome: 'Membro', fields: [
+      { k: 'nome', l: 'Nome', t: 'text', req: 1 },
+      { k: 'telefone', l: 'Telefone', t: 'tel' },
+      { k: 'nascimento', l: 'Nascimento', t: 'date' },
+      { k: 'departamento', l: 'Departamento / Ministério', t: 'text', list: () => [...DEPTOS.map(d => d.nome), ...CLUBES.map(c => c.nome), 'ASA', 'Sonoplastia', 'Música'] },
+      { k: 'funcao', l: 'Função', t: 'text' },
+      { k: 'situacao', l: 'Situação', t: 'select', opts: ['Membro', 'Interessado', 'Visitante', 'Transferido'] },
+      { k: 'obs', l: 'Observações', t: 'textarea' },
+    ]
+  },
+  atividades: {
+    nome: 'Atividade', fields: [
+      { k: 'data', l: 'Data', t: 'date', req: 1, def: todayISO },
+      { k: 'hora', l: 'Horário', t: 'time' },
+      { k: 'titulo', l: 'Atividade', t: 'text', req: 1 },
+      { k: 'local', l: 'Local', t: 'text' },
+      { k: 'responsavel', l: 'Responsável', t: 'text', list: memberNames },
+      { k: 'status', l: 'Situação', t: 'select', opts: STATUS_ATV, def: 'Planejada' },
+      { k: 'descricao', l: 'Detalhes', t: 'textarea' },
+    ]
+  },
+  equipe: {
+    nome: 'Integrante', fields: [
+      { k: 'nome', l: 'Nome', t: 'text', req: 1, list: memberNames },
+      { k: 'cargo', l: 'Cargo / Função', t: 'text', list: () => ['Líder', 'Diretor(a)', 'Diretor(a) associado(a)', 'Secretário(a)', 'Tesoureiro(a)', 'Conselheiro(a)', 'Instrutor(a)', 'Professor(a)', 'Ancião', 'Diácono', 'Diaconisa', 'Auxiliar'] },
+      { k: 'telefone', l: 'Telefone', t: 'tel' },
+      { k: 'obs', l: 'Observações', t: 'text' },
+    ]
+  },
+  clubeMembros: {
+    nome: 'Membro do clube', fields: [
+      { k: 'nome', l: 'Nome', t: 'text', req: 1 },
+      { k: 'nascimento', l: 'Nascimento', t: 'date' },
+      { k: 'unidade', l: 'Unidade', t: 'text' },
+      { k: 'classe', l: 'Classe', t: 'text', list: ref => ref === 'aventureiros' ? ['Abelhinhas Laboriosas', 'Luminares', 'Edificadores', 'Mãos Ajudadoras'] : ['Amigo', 'Companheiro', 'Pesquisador', 'Pioneiro', 'Excursionista', 'Guia'] },
+      { k: 'responsavel', l: 'Pai/Mãe/Responsável', t: 'text' },
+      { k: 'telefone', l: 'Telefone', t: 'tel' },
+      { k: 'situacao', l: 'Situação', t: 'select', opts: ['Ativo', 'Inativo'], def: 'Ativo' },
+    ]
+  },
+  asaDoacoes: {
+    nome: 'Doação recebida', fields: [
+      { k: 'data', l: 'Data', t: 'date', req: 1, def: todayISO },
+      { k: 'doador', l: 'Doador', t: 'text', list: memberNames },
+      { k: 'item', l: 'Item', t: 'text', req: 1, list: () => ITENS_ASA },
+      { k: 'quantidade', l: 'Quantidade', t: 'number', req: 1 },
+      { k: 'unidade', l: 'Unidade', t: 'select', opts: UNIDADES },
+      { k: 'validade', l: 'Validade', t: 'date' },
+      { k: 'obs', l: 'Observações', t: 'text' },
+    ]
+  },
+  asaDistribuicoes: {
+    nome: 'Distribuição', fields: [
+      { k: 'data', l: 'Data', t: 'date', req: 1, def: todayISO },
+      { k: 'familia', l: 'Família / Beneficiário', t: 'text', req: 1, list: () => DB.asaFamilias.map(f => f.nome) },
+      { k: 'item', l: 'Item', t: 'text', req: 1, list: () => estoque().map(e => e.item) },
+      { k: 'quantidade', l: 'Quantidade', t: 'number', req: 1 },
+      { k: 'unidade', l: 'Unidade', t: 'select', opts: UNIDADES },
+      { k: 'obs', l: 'Observações', t: 'text' },
+    ]
+  },
+  asaFamilias: {
+    nome: 'Família assistida', fields: [
+      { k: 'nome', l: 'Família / Responsável', t: 'text', req: 1 },
+      { k: 'telefone', l: 'Telefone', t: 'tel' },
+      { k: 'endereco', l: 'Endereço', t: 'text' },
+      { k: 'pessoas', l: 'Nº de pessoas', t: 'number' },
+      { k: 'situacao', l: 'Situação', t: 'select', opts: ['Ativa', 'Em avaliação', 'Encerrada'], def: 'Ativa' },
+      { k: 'obs', l: 'Necessidades / Observações', t: 'textarea' },
+    ]
+  },
+};
+
+/* ---------------- TABELA GENÉRICA (CRUD) ---------------- */
+function cell(f, r) {
+  const v = r[f.k];
+  if (f.t === 'date') return v ? `${fmtD(v)} <span class="wd">${weekday(v)}</span>` : '';
+  if (f.t === 'money') return `<span class="${r.natureza === 'Saída' ? 'neg' : 'pos'}">${r.natureza === 'Saída' ? '− ' : ''}${brl(v)}</span>`;
+  if (f.t === 'url') return v ? `<a href="${esc(v)}" target="_blank" rel="noopener">abrir ▶</a>` : '';
+  if (f.k === 'status' || f.k === 'situacao') {
+    const cls = { Realizada: 'green', Exibido: 'green', Ativo: 'green', Ativa: 'green', Membro: 'green', Baixado: 'orange', Confirmada: '', Cancelada: 'red', Inativo: 'gray', Encerrada: 'gray', Pendente: 'orange', Planejada: 'gray' }[v] ?? '';
+    return v ? `<span class="badge ${cls}">${esc(v)}</span>` : '';
+  }
+  if (f.t === 'textarea') return `<span class="small">${esc(v).replace(/\n/g, '<br>')}</span>`;
+  return esc(v);
+}
+
+function crud(coll, ref, o = {}) {
+  const sc = SCHEMA[coll];
+  let rows = DB[coll].filter(r => ref == null || r.ref === ref);
+  if (o.filter) rows = rows.filter(o.filter);
+  const sk = o.sortKey || (sc.fields.find(f => f.t === 'date') || {}).k || 'nome';
+  rows.sort((a, b) => String(a[sk] || '').localeCompare(String(b[sk] || ''), 'pt-BR') * (o.asc ? 1 : -1));
+  const cols = o.cols ? o.cols.map(k => sc.fields.find(f => f.k === k)) : sc.fields;
+  return `<div class="card">
+    <div class="card-head"><h3>${o.title || sc.nome}</h3>
+      <div class="tools">${o.tools || ''}
+        <input class="search" placeholder="🔎 Buscar..." data-search>
+        <button class="btn primary" data-act="add" data-coll="${coll}" data-ref="${ref ?? ''}">+ ${o.addLabel || 'Adicionar'}</button>
+      </div>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr>${cols.map(c => `<th class="${c.t === 'money' ? 'num' : ''}">${c.l}</th>`).join('')}<th></th></tr></thead>
+      <tbody>${rows.length ? rows.map(r => `<tr>${cols.map(c => `<td class="${c.t === 'money' ? 'num' : ''}">${cell(c, r)}</td>`).join('')}
+        <td class="row-act"><button class="icon" data-act="edit" data-coll="${coll}" data-id="${r.id}" title="Editar">✎</button><button class="icon danger" data-act="del" data-coll="${coll}" data-id="${r.id}" title="Excluir">🗑</button></td></tr>`).join('')
+      : `<tr><td colspan="${cols.length + 1}" class="empty">${o.empty || 'Nenhum registro ainda. Clique em “+ ' + (o.addLabel || 'Adicionar') + '”.'}</td></tr>`}
+      </tbody></table></div></div>`;
+}
+
+/* ---------------- FORMULÁRIO (MODAL) ---------------- */
+let formCtx = null;
+function openForm(coll, ref, id, preset = {}) {
+  const sc = SCHEMA[coll];
+  const rec = id ? DB[coll].find(r => r.id === id) : null;
+  const ctxRef = rec ? rec.ref : (ref || undefined);
+  formCtx = { coll, ref: ctxRef, id };
+  $('#modalTitle').textContent = (rec ? 'Editar ' : 'Novo(a) ') + sc.nome.toLowerCase();
+  const html = sc.fields.map(f => {
+    let v = rec ? rec[f.k] : (preset[f.k] ?? (typeof f.def === 'function' ? f.def(ctxRef) : f.def));
+    v = v ?? '';
+    const req = f.req ? ' required' : '';
+    const full = (f.t === 'textarea') ? ' full' : '';
+    let input;
+    if (f.t === 'select') {
+      input = `<select name="${f.k}"${req}>${f.req ? '' : '<option value=""></option>'}${f.opts.map(o => `<option${o === v ? ' selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
+    } else if (f.t === 'textarea') {
+      input = `<textarea name="${f.k}"${req}>${esc(v)}</textarea>`;
+    } else {
+      const type = { money: 'number', number: 'number', date: 'date', time: 'time', url: 'url', tel: 'tel' }[f.t] || 'text';
+      const step = f.t === 'money' ? ' step="0.01" min="0"' : f.t === 'number' ? ' step="any"' : '';
+      const list = f.list ? ` list="dl-${f.k}"` : '';
+      const opts = f.list ? `<datalist id="dl-${f.k}">${[...new Set(f.list(ctxRef))].map(o => `<option value="${esc(o)}">`).join('')}</datalist>` : '';
+      input = `<input type="${type}" name="${f.k}" value="${esc(v)}"${step}${list}${req}>${opts}`;
+    }
+    return `<div class="${full}"><label>${f.l}${f.req ? ' <span class="req">*</span>' : ''}</label>${input}</div>`;
+  }).join('');
+  $('#modalForm').innerHTML = html + `<div class="form-actions">
+    <button type="button" class="btn" data-act="close-modal">Cancelar</button>
+    <button type="submit" class="btn primary">Salvar</button></div>`;
+  $('#modalForm').onsubmit = submitForm;
+  $('#modal').hidden = false;
+  setTimeout(() => { const first = $('#modalForm input, #modalForm select'); first && first.focus(); }, 30);
+}
+function submitForm(e) {
+  e.preventDefault();
+  const { coll, ref, id } = formCtx;
+  const fd = new FormData(e.target);
+  const data = {};
+  SCHEMA[coll].fields.forEach(f => {
+    let v = (fd.get(f.k) ?? '').toString().trim();
+    if (f.t === 'money' || f.t === 'number') v = v === '' ? '' : num(v);
+    data[f.k] = v;
+  });
+  if (id) Object.assign(DB[coll].find(r => r.id === id), data);
+  else DB[coll].push({ id: uid(), ...(ref ? { ref } : {}), ...data });
+  save(); closeModal(); render(); toast('Salvo ✔');
+}
+function closeModal() { $('#modal').hidden = true; formCtx = null; }
+
+/* Modal livre (para formulários especiais) */
+function openCustom(title, innerHTML, onSubmit) {
+  $('#modalTitle').textContent = title;
+  $('#modalForm').innerHTML = innerHTML + `<div class="form-actions">
+    <button type="button" class="btn" data-act="close-modal">Cancelar</button>
+    <button type="submit" class="btn primary">Salvar</button></div>`;
+  $('#modalForm').onsubmit = e => { e.preventDefault(); if (onSubmit(new FormData(e.target)) !== false) { save(); closeModal(); render(); } };
+  $('#modal').hidden = false;
+}
+
+/* ---------------- CÁLCULOS ---------------- */
+function caixa(ref, mes) {
+  const all = DB.financeiro.filter(r => r.ref === ref);
+  const sum = (arr, nat) => arr.filter(r => r.natureza === nat).reduce((s, r) => s + num(r.valor), 0);
+  const doMes = mes ? all.filter(r => (r.data || '').startsWith(mes)) : all;
+  const ent = sum(doMes, 'Entrada'), sai = sum(doMes, 'Saída');
+  const saldo = sum(all, 'Entrada') - sum(all, 'Saída');
+  return { ent, sai, res: ent - sai, saldo, rows: doMes };
+}
+function estoque() {
+  const m = {};
+  const k = (i, u) => (i || '').trim().toLowerCase() + '|' + (u || '');
+  DB.asaDoacoes.forEach(d => { const key = k(d.item, d.unidade); m[key] = m[key] || { item: (d.item || '').trim(), unidade: d.unidade || '', ent: 0, sai: 0 }; m[key].ent += num(d.quantidade); });
+  DB.asaDistribuicoes.forEach(d => { const key = k(d.item, d.unidade); m[key] = m[key] || { item: (d.item || '').trim(), unidade: d.unidade || '', ent: 0, sai: 0 }; m[key].sai += num(d.quantidade); });
+  return Object.values(m).map(x => ({ ...x, saldo: x.ent - x.sai })).sort((a, b) => a.item.localeCompare(b.item, 'pt-BR'));
+}
+function escalaDoDia(coll, data) {
+  const list = DB[coll].filter(r => r.data === data);
+  return list.find(r => r.culto === 'Sábado — Manhã') || list[0] || null;
+}
+function proximasAtividades(dias = 60, ref) {
+  const hoje = todayISO();
+  const lim = new Date(); lim.setDate(lim.getDate() + dias);
+  const limISO = isoOf(lim);
+  return DB.atividades.filter(a => a.data >= hoje && a.data <= limISO && a.status !== 'Cancelada' && (ref == null || a.ref === ref))
+    .sort((a, b) => (a.data + (a.hora || '')).localeCompare(b.data + (b.hora || '')));
+}
+const refNome = ref => {
+  const d = DEPTOS.find(x => x.id === ref) || CLUBES.find(x => x.id === ref);
+  return d ? (d.curto || d.nome) : ref === 'asa' ? 'ASA' : ref;
+};
+const refIco = ref => (DEPTOS.find(x => x.id === ref) || CLUBES.find(x => x.id === ref) || { ico: '🧺' }).ico;
+
+function atividadesList(list, showRef) {
+  if (!list.length) return `<div class="card-body muted">Nenhuma atividade agendada.</div>`;
+  return `<ul class="list">${list.map(a => {
+    const d = dateObj(a.data);
+    return `<li><div class="date-chip">${pad(d.getDate())}<small>${MES_AB[d.getMonth()]}</small></div>
+      <div class="grow"><b>${esc(a.titulo)}</b>
+      <div class="small muted">${WD_FULL[d.getDay()]}${a.hora ? ' · ' + a.hora : ''}${a.local ? ' · ' + esc(a.local) : ''}${a.responsavel ? ' · ' + esc(a.responsavel) : ''}</div></div>
+      ${showRef && a.ref ? `<span class="badge">${refIco(a.ref)} ${esc(refNome(a.ref))}</span>` : ''}</li>`;
+  }).join('')}</ul>`;
+}
+
+/* ---------------- NAVEGAÇÃO ---------------- */
+const NAV = [
+  ['Principal'],
+  ['dashboard', '🏠', 'Visão Geral'],
+  ['Culto'],
+  ['sonoplastia', '🎚️', 'Sonoplastia'],
+  ['adoracao', '🙏', 'Escala de Adoração'],
+  ['musica', '🎵', 'Escala de Música'],
+  ['informativo', '🌎', 'Informativo Mundial'],
+  ['Finanças'],
+  ['financeiro', '💰', 'Dízimos e Ofertas'],
+  ['Departamentos'],
+  ...DEPTOS.map(d => ['depto/' + d.id, d.ico, d.nome]),
+  ['Ministérios com caixa próprio'],
+  ...CLUBES.map(c => ['clube/' + c.id, c.ico, c.nome]),
+  ['asa', '🧺', 'ASA — Ação Solidária'],
+  ['Cadastros'],
+  ['membros', '👥', 'Membros'],
+  ['backup', '💾', 'Backup e Configurações'],
+];
+function renderNav(route) {
+  $('#nav').innerHTML = NAV.map(n => n.length === 1
+    ? `<div class="nav-sec">${n[0]}</div>`
+    : `<a href="#/${n[0]}" class="${route.startsWith(n[0]) ? 'active' : ''}"><span class="ico">${n[1]}</span>${n[2]}</a>`).join('');
+  $('#brandName').textContent = DB.config.igreja || 'IASD';
+}
+function tabs(base, list, active) {
+  return `<div class="tabs">${list.map(([id, label]) => `<a href="#/${base}/${id}" class="${id === active ? 'active' : ''}">${label}</a>`).join('')}</div>`;
+}
+const pageHead = (title, sub, right = '') => `<div class="page-head"><div><h1>${title}</h1>${sub ? `<p>${sub}</p>` : ''}</div><div class="tools">${right}</div></div>`;
+
+let liveTimer = null;
+function render() {
+  clearInterval(liveTimer); liveTimer = null;
+  const route = (location.hash.replace(/^#\/?/, '') || 'dashboard');
+  const [page, sub, tab] = route.split('/');
+  renderNav(route);
+  document.body.classList.remove('nav-open');
+  let html = '', title = '';
+  try {
+    switch (page) {
+      case 'dashboard': title = 'Visão Geral'; html = pageDashboard(); break;
+      case 'sonoplastia': title = 'Sonoplastia'; html = pageSom(sub || 'aovivo'); break;
+      case 'adoracao': title = 'Escala de Adoração'; html = pageEscala('escalaAdoracao', 'Escala de Adoração', 'Quem participa de cada parte do culto.', ['data', 'culto', 'plataforma', 'pregador', 'boasVindas', 'adoracaoInfantil', 'anuncios', 'saude', 'provai', 'oracao', 'diaconos']); break;
+      case 'musica': title = 'Escala de Música'; html = pageEscala('escalaMusica', 'Escala de Música', 'Louvor congregacional, música especial e instrumentistas.'); break;
+      case 'informativo': title = 'Informativo Mundial das Missões'; html = pageInformativo(); break;
+      case 'financeiro': title = 'Dízimos e Ofertas'; html = pageFinanceiro(); break;
+      case 'depto': { const d = DEPTOS.find(x => x.id === sub) || DEPTOS[0]; title = d.nome; html = pageDepto(d, tab || 'atividades'); break; }
+      case 'clube': { const c = CLUBES.find(x => x.id === sub) || CLUBES[0]; title = c.nome; html = pageClube(c, tab || 'resumo'); break; }
+      case 'asa': title = 'ASA — Ação Solidária Adventista'; html = pageAsa(sub || 'resumo'); break;
+      case 'membros': title = 'Membros'; html = pageMembros(); break;
+      case 'backup': title = 'Backup e Configurações'; html = pageBackup(); break;
+      default: title = 'Visão Geral'; html = pageDashboard();
+    }
+  } catch (e) {
+    console.error(e);
+    html = `<div class="notice warn">Ocorreu um erro ao exibir esta página: ${esc(e.message)}</div>`;
+  }
+  $('#topTitle').textContent = title;
+  document.title = title + ' · Gestão IASD';
+  $('#main').innerHTML = html;
+  if (page === 'sonoplastia' && (sub || 'aovivo') === 'aovivo') startLive();
+}
+
+/* ============================================================
+   PÁGINAS
+   ============================================================ */
+
+/* ---------- VISÃO GERAL ---------- */
+function pageDashboard() {
+  const mes = monthISO();
+  const ig = caixa('igreja', mes);
+  const dizimos = ig.rows.filter(r => r.natureza === 'Entrada' && /d[ií]zimo/i.test(r.categoria)).reduce((s, r) => s + num(r.valor), 0);
+  const ofertas = ig.rows.filter(r => r.natureza === 'Entrada' && /oferta|pacto/i.test(r.categoria)).reduce((s, r) => s + num(r.valor), 0);
+  const dbv = caixa('desbravadores'), avt = caixa('aventureiros'), asa = caixa('asa');
+  const est = estoque().filter(e => e.saldo > 0);
+  const sab = new Date().getDay() === 6 ? todayISO() : nextSabbath();
+  const ad = escalaDoDia('escalaAdoracao', sab), mu = escalaDoDia('escalaMusica', sab), so = escalaDoDia('escalaSom', sab);
+  const inf = DB.informativos.find(i => i.data === sab);
+  const m = new Date().getMonth() + 1;
+  const aniv = DB.membros.filter(x => x.nascimento && +x.nascimento.split('-')[1] === m)
+    .sort((a, b) => a.nascimento.slice(8).localeCompare(b.nascimento.slice(8)));
+
+  const row = (l, v) => v ? `<dt>${l}</dt><dd>${esc(v)}</dd>` : '';
+  const sabHtml = (ad || mu || so || inf) ? `<dl class="kv">
+      ${ad ? row('Plataforma', ad.plataforma) + row('Pregador', ad.pregador) + row('Boas-vindas', ad.boasVindas) + row('Adoração infantil', ad.adoracaoInfantil) + row('Anúncios', ad.anuncios) + row('Momento de saúde', ad.saude) + row('Provai e Vede', ad.provai) + row('Oração intercessora', ad.oracao) + row('Diáconos', ad.diaconos) : ''}
+      ${mu ? row('Louvor congregacional', mu.louvor) + row('Música especial', mu.especial) + row('Instrumentista', mu.instrumentista) : ''}
+      ${so ? row('Sonoplasta', so.sonoplasta) + row('Projeção', so.projecao) + row('Transmissão', so.transmissao) : ''}
+      ${inf ? `<dt>Informativo</dt><dd>${esc(inf.titulo)} ${inf.link ? `· <a href="${esc(inf.link)}" target="_blank" rel="noopener">vídeo ▶</a>` : ''} <span class="badge ${inf.status === 'Pendente' ? 'orange' : 'green'}">${esc(inf.status)}</span></dd>` : ''}
+    </dl>` : `<div class="muted">Nada escalado ainda para este sábado. Preencha as <a href="#/adoracao">escalas de adoração</a>, <a href="#/musica">música</a> e <a href="#/sonoplastia/escala">sonoplastia</a>.</div>`;
+
+  const hoje = new Date();
+  return pageHead(`Feliz sábado! 🕊️`, `${esc(DB.config.igreja)}${DB.config.cidade ? ' · ' + esc(DB.config.cidade) : ''} — ${WD_FULL[hoje.getDay()]}, ${hoje.getDate()} de ${MESES[hoje.getMonth()]} de ${hoje.getFullYear()}`,
+    `<a class="btn primary" href="#/sonoplastia">🎚️ Abrir culto ao vivo</a>`) +
+    `<div class="kpis">
+      <div class="kpi green"><div class="lbl">Dízimos — ${MESES[hoje.getMonth()]}</div><div class="val">${brl(dizimos)}</div><div class="sub">Tesouraria da igreja</div></div>
+      <div class="kpi green"><div class="lbl">Ofertas — ${MESES[hoje.getMonth()]}</div><div class="val">${brl(ofertas)}</div><div class="sub">Regular, missionária e pacto</div></div>
+      <div class="kpi"><div class="lbl">Saldo da igreja</div><div class="val">${brl(caixa('igreja').saldo)}</div><div class="sub">Resultado do mês: ${brl(ig.res)}</div></div>
+      <div class="kpi gold"><div class="lbl">⛺ Caixa Desbravadores</div><div class="val">${brl(dbv.saldo)}</div><div class="sub">${DB.clubeMembros.filter(x => x.ref === 'desbravadores' && x.situacao !== 'Inativo').length} membros ativos</div></div>
+      <div class="kpi gold"><div class="lbl">🎒 Caixa Aventureiros</div><div class="val">${brl(avt.saldo)}</div><div class="sub">${DB.clubeMembros.filter(x => x.ref === 'aventureiros' && x.situacao !== 'Inativo').length} membros ativos</div></div>
+      <div class="kpi orange"><div class="lbl">🧺 ASA</div><div class="val">${est.length} itens</div><div class="sub">${DB.asaFamilias.filter(f => f.situacao !== 'Encerrada').length} famílias · caixa ${brl(asa.saldo)}</div></div>
+    </div>
+    <div class="grid g2">
+      <div class="card"><div class="card-head"><h3>📅 Próximo sábado — ${fmtD(sab)}</h3><a class="btn" href="#/adoracao">Escalas</a></div><div class="card-body">${sabHtml}</div></div>
+      <div class="card"><div class="card-head"><h3>🗓️ Próximas atividades (60 dias)</h3></div>${atividadesList(proximasAtividades(60).slice(0, 10), true)}</div>
+    </div>
+    <div class="grid g2">
+      <div class="card"><div class="card-head"><h3>⛪ Departamentos e ministérios</h3></div><div class="card-body"><div class="tiles">
+        ${DEPTOS.map(d => `<a class="tile" href="#/depto/${d.id}"><span class="ico">${d.ico}</span><div><b>${d.nome}</b><span>${proximasAtividades(60, d.id).length} atividade(s)</span></div></a>`).join('')}
+        ${CLUBES.map(c => `<a class="tile" href="#/clube/${c.id}"><span class="ico">${c.ico}</span><div><b>${c.curto}</b><span>Caixa: ${brl(caixa(c.id).saldo)}</span></div></a>`).join('')}
+        <a class="tile" href="#/asa"><span class="ico">🧺</span><div><b>ASA</b><span>${est.length} itens em estoque</span></div></a>
+      </div></div></div>
+      <div class="card"><div class="card-head"><h3>🎂 Aniversariantes de ${MESES[hoje.getMonth()]}</h3></div>
+        ${aniv.length ? `<ul class="list">${aniv.map(a => `<li><div class="date-chip">${a.nascimento.slice(8)}<small>${MES_AB[m - 1]}</small></div><div class="grow"><b>${esc(a.nome)}</b><div class="small muted">${esc(a.departamento || '')}</div></div></li>`).join('')}</ul>`
+      : `<div class="card-body muted">Cadastre a data de nascimento em <a href="#/membros">Membros</a> para ver os aniversariantes.</div>`}
+      </div>
+    </div>`;
+}
+
+/* ---------- SONOPLASTIA ---------- */
+function getProg(id) { return DB.programas.find(p => p.id === id) || DB.programas[0]; }
+function liveReset() {
+  if (DB.aoVivo.data !== todayISO()) { DB.aoVivo.data = todayISO(); DB.aoVivo.feitos = []; DB.aoVivo.check = []; save(); }
+}
+function pageSom(tab) {
+  const t = tabs('sonoplastia', [['aovivo', '▶ Culto ao vivo'], ['roteiro', '📝 Roteiro (editar)'], ['escala', '👥 Escala de sonoplastas'], ['checklist', '✅ Checklist pré-culto']], tab);
+  if (tab === 'roteiro') return pageHead('Sonoplastia', 'Edite a ordem do culto. As alterações são salvas automaticamente.') + t + somRoteiro();
+  if (tab === 'escala') return pageHead('Sonoplastia', 'Quem opera a mesa de som, a projeção e a transmissão.') + t + escalaTools('escalaSom') + crud('escalaSom', null, { filter: pastFilter, asc: true, title: 'Escala de sonoplastia', tools: pastToggle() });
+  if (tab === 'checklist') return pageHead('Sonoplastia', 'Marque cada item antes do culto começar. Reinicia automaticamente a cada dia.') + t + somChecklist();
+  return pageHead('Sonoplastia', 'Use <b>Espaço</b> ou <b>→</b> para avançar e <b>←</b> para voltar. Clique em um item para marcar/desmarcar.') + t + somAoVivo();
+}
+function somAoVivo() {
+  liveReset();
+  const p = getProg(DB.aoVivo.programa);
+  const feitos = new Set(DB.aoVivo.feitos);
+  const idx = p.itens.findIndex(i => !feitos.has(i.id));
+  const cur = p.itens[idx], nxt = idx >= 0 ? p.itens[idx + 1] : null;
+  const sab = todayISO();
+  const ad = escalaDoDia('escalaAdoracao', sab), mu = escalaDoDia('escalaMusica', sab), so = escalaDoDia('escalaSom', sab);
+  const inf = DB.informativos.find(i => i.data === sab);
+  const equipe = [
+    ['Sonoplasta', so?.sonoplasta], ['Projeção', so?.projecao], ['Plataforma', ad?.plataforma], ['Pregador', ad?.pregador],
+    ['Adoração infantil', ad?.adoracaoInfantil], ['Momento de saúde', ad?.saude], ['Provai e Vede', ad?.provai],
+    ['Louvor', mu?.louvor], ['Música especial', mu?.especial], ['Hinos', mu?.hinos],
+  ].filter(x => x[1]);
+
+  return `<div class="live">
+    <div>
+      <div class="card">
+        <div class="card-head">
+          <div><div class="live-clock" id="liveClock">--:--:--</div><div class="live-date">${WD_FULL[new Date().getDay()]}, ${fmtD(sab)}</div></div>
+          <div class="tools"><select data-act="live-prog">${DB.programas.map(x => `<option value="${x.id}"${x.id === p.id ? ' selected' : ''}>${esc(x.nome)}</option>`).join('')}</select></div>
+        </div>
+        <ul class="prog">${p.itens.map((i, n) => `<li data-act="live-toggle" data-id="${i.id}" class="${feitos.has(i.id) ? 'done' : ''}${n === idx ? ' current' : ''}${nxt && i.id === nxt.id ? ' next' : ''}">
+            <div class="hora">${i.hora || '↳'}</div>
+            <div><div class="tit">${esc(i.titulo)}</div>${i.obs ? `<div class="obs">⚠ ${esc(i.obs)}</div>` : ''}</div>
+            <div>${i.hino ? `<span class="hino">♪ ${esc(i.hino)}</span>` : ''}</div></li>`).join('')}</ul>
+      </div>
+    </div>
+    <div>
+      <div class="live-actions">
+        <button class="btn primary big" data-act="live-next">Avançar ▶</button>
+        <button class="btn big" data-act="live-back">◀ Voltar</button>
+        <button class="btn" data-act="live-restart">↺ Reiniciar</button>
+        <button class="btn" data-act="live-full">⛶ Tela cheia</button>
+      </div>
+      ${cur ? `<div class="now-card"><div class="lbl">Agora${cur.hora ? ' · previsto ' + cur.hora : ''}</div><div class="big">${esc(cur.titulo)}</div>
+          ${cur.hino ? `<div class="hino-big">♪ Hino ${esc(cur.hino)}</div>` : ''}${cur.obs ? `<div class="obs">⚠ ${esc(cur.obs)}</div>` : ''}
+          ${/informativo/i.test(cur.titulo) && inf ? `<div class="obs">🎬 ${esc(inf.titulo)}${inf.arquivo ? ' — ' + esc(inf.arquivo) : ''} ${inf.link ? `<a style="color:#fff" href="${esc(inf.link)}" target="_blank" rel="noopener">abrir vídeo ▶</a>` : ''}</div>` : ''}</div>`
+      : `<div class="now-card"><div class="lbl">Culto</div><div class="big">Encerrado 🙌</div><div class="obs">Clique em “Reiniciar” para começar de novo.</div></div>`}
+      ${nxt ? `<div class="next-card"><div class="lbl">Próximo</div><div class="big">${esc(nxt.titulo)}${nxt.hino ? ' · ♪ ' + esc(nxt.hino) : ''}</div>${nxt.obs ? `<div class="small" style="color:var(--orange)">⚠ ${esc(nxt.obs)}</div>` : ''}</div>` : ''}
+      <div class="next-card" id="cdBox"><div class="lbl" id="cdLabel">Próximo horário marcado</div><div class="countdown" id="cdVal">—</div></div>
+      <div class="card"><div class="card-head"><h3>👥 Equipe de hoje</h3><a class="btn" href="#/adoracao">Escalas</a></div>
+        <div class="card-body">${equipe.length ? `<dl class="kv">${equipe.map(([l, v]) => `<dt>${l}</dt><dd>${esc(v)}</dd>`).join('')}</dl>` : '<span class="muted">Nenhuma escala cadastrada para hoje.</span>'}</div></div>
+      ${inf ? '' : `<div class="notice warn">🌎 Nenhum vídeo do Informativo Mundial das Missões cadastrado para hoje. <a href="#/informativo">Cadastrar</a></div>`}
+    </div>
+  </div>`;
+}
+function startLive() {
+  const tick = () => {
+    const now = new Date();
+    const c = $('#liveClock'); if (!c) return;
+    c.textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    const p = getProg(DB.aoVivo.programa);
+    const feitos = new Set(DB.aoVivo.feitos);
+    const idx = p.itens.findIndex(i => !feitos.has(i.id));
+    if (idx < 0) { $('#cdBox').style.display = 'none'; return; }
+    const secNow = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+    // Se o item atual tem horário no futuro, conta até ele; senão, conta até o próximo item com horário.
+    let target = null;
+    if (p.itens[idx].hora && minutesOf(p.itens[idx].hora) * 60 > secNow) target = p.itens[idx];
+    else target = p.itens.slice(idx + 1).find(i => i.hora);
+    if (!target) { $('#cdBox').style.display = 'none'; return; }
+    $('#cdBox').style.display = '';
+    const diff = minutesOf(target.hora) * 60 - secNow;
+    $('#cdLabel').textContent = `${target.hora} — ${target.titulo}`;
+    const v = $('#cdVal');
+    v.textContent = diff >= 0 ? 'em ' + fmtSecs(diff) : 'atrasado ' + fmtSecs(-diff);
+    v.className = 'countdown' + (diff < 0 ? ' late' : '');
+  };
+  tick(); liveTimer = setInterval(tick, 1000);
+}
+function liveAdvance(dir) {
+  liveReset();
+  const p = getProg(DB.aoVivo.programa);
+  if (dir > 0) {
+    const cur = p.itens.find(i => !DB.aoVivo.feitos.includes(i.id));
+    if (cur) DB.aoVivo.feitos.push(cur.id);
+  } else DB.aoVivo.feitos.pop();
+  save(); render();
+}
+
+function somRoteiro() {
+  const p = getProg(UI.roteiro || DB.aoVivo.programa);
+  UI.roteiro = p.id;
+  return `<div class="card">
+    <div class="card-head">
+      <div class="tools"><select data-act="rot-select">${DB.programas.map(x => `<option value="${x.id}"${x.id === p.id ? ' selected' : ''}>${esc(x.nome)}</option>`).join('')}</select></div>
+      <div class="tools">
+        <button class="btn" data-act="rot-new">+ Novo roteiro</button>
+        <button class="btn" data-act="rot-dup">Duplicar</button>
+        <button class="btn" data-act="rot-rename">Renomear</button>
+        <button class="btn" data-act="rot-txt">⬇ Exportar .txt</button>
+        <button class="btn" data-act="rot-reset">Restaurar padrão</button>
+        <button class="btn danger" data-act="rot-del">Excluir</button>
+      </div>
+    </div>
+    <div class="table-wrap"><table class="edit-table">
+      <thead><tr><th style="width:110px">Horário</th><th>Momento</th><th style="width:90px">Hino nº</th><th>Observação para o sonoplasta</th><th style="width:110px"></th></tr></thead>
+      <tbody>${p.itens.map((i, n) => `<tr>
+        <td><input type="time" value="${esc(i.hora)}" data-pi="${i.id}" data-f="hora"></td>
+        <td><input value="${esc(i.titulo)}" data-pi="${i.id}" data-f="titulo"></td>
+        <td><input value="${esc(i.hino)}" data-pi="${i.id}" data-f="hino"></td>
+        <td><input value="${esc(i.obs)}" data-pi="${i.id}" data-f="obs"></td>
+        <td class="row-act"><button class="icon" data-act="pi-up" data-id="${i.id}" title="Subir"${n === 0 ? ' disabled' : ''}>↑</button><button class="icon" data-act="pi-down" data-id="${i.id}" title="Descer">↓</button><button class="icon danger" data-act="pi-del" data-id="${i.id}" title="Excluir">✕</button></td>
+      </tr>`).join('')}</tbody></table></div>
+    <div class="card-body"><button class="btn primary" data-act="pi-add">+ Adicionar momento</button>
+      <span class="muted small" style="margin-left:8px">Deixe o horário em branco para itens que acontecem logo após o anterior.</span></div>
+  </div>`;
+}
+function roteiroTxt(p) {
+  return p.itens.map(i => `- ${i.hora ? i.hora + ' - ' : ''}${i.titulo}${i.hino ? ' - hino ' + i.hino : ''}${i.obs ? ' (' + i.obs + ')' : ''}`).join('\r\n');
+}
+function somChecklist() {
+  liveReset();
+  const ok = new Set(DB.aoVivo.check);
+  const done = DB.checklist.filter(c => ok.has(c.id)).length;
+  return `<div class="card"><div class="card-head"><h3>Checklist — ${done}/${DB.checklist.length} concluído(s)</h3>
+      <div class="tools"><button class="btn" data-act="chk-clear">Desmarcar tudo</button><button class="btn primary" data-act="chk-add">+ Item</button></div></div>
+    <div class="check-list">${DB.checklist.map(c => `<label class="${ok.has(c.id) ? 'ok' : ''}"><input type="checkbox" data-act="chk" data-id="${c.id}"${ok.has(c.id) ? ' checked' : ''}><span class="grow">${esc(c.texto)}</span><button type="button" class="icon danger" data-act="chk-del" data-id="${c.id}">✕</button></label>`).join('')}</div></div>`;
+}
+
+/* ---------- ESCALAS ---------- */
+const pastFilter = r => UI.showPast || !r.data || r.data >= todayISO();
+const pastToggle = () => `<label class="small" style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-act="toggle-past" style="width:auto"${UI.showPast ? ' checked' : ''}> Mostrar datas passadas</label>`;
+function escalaTools(coll) {
+  return `<div class="card no-print"><div class="card-body tools">
+    <b>Gerar sábados do mês:</b>
+    <input type="month" id="genMonth" value="${monthISO()}">
+    <button class="btn" data-act="gen-sabs" data-coll="${coll}">Criar linhas em branco</button>
+    <span class="muted small">Cria um registro para cada sábado (culto da manhã) que ainda não existir.</span>
+  </div></div>`;
+}
+function pageEscala(coll, title, sub, cols) {
+  return pageHead(title, sub) + escalaTools(coll) + crud(coll, null, { filter: pastFilter, asc: true, title, tools: pastToggle(), cols });
+}
+
+/* ---------- INFORMATIVO MUNDIAL DAS MISSÕES ---------- */
+function pageInformativo() {
+  const sab = new Date().getDay() === 6 ? todayISO() : nextSabbath();
+  const inf = DB.informativos.find(i => i.data === sab);
+  return pageHead('Informativo Mundial das Missões', 'Vídeo exibido antes de iniciar a Escola Sabatina (no roteiro: 08:55).') +
+    `<div class="card"><div class="card-head"><h3>🎬 Vídeo do próximo sábado — ${fmtD(sab)}</h3></div><div class="card-body">
+      ${inf ? `<div style="font-size:18px;font-weight:700">${esc(inf.titulo)}</div>
+        <div class="mt">${inf.link ? `<a class="btn primary" href="${esc(inf.link)}" target="_blank" rel="noopener">▶ Abrir vídeo</a> ` : ''}
+        <span class="badge ${inf.status === 'Pendente' ? 'orange' : 'green'}">${esc(inf.status)}</span> ${inf.arquivo ? `<span class="muted">📁 ${esc(inf.arquivo)}</span>` : ''}</div>
+        ${inf.status !== 'Exibido' ? `<div class="mt"><button class="btn" data-act="inf-status" data-id="${inf.id}" data-v="Baixado">Marcar como baixado</button> <button class="btn" data-act="inf-status" data-id="${inf.id}" data-v="Exibido">Marcar como exibido</button></div>` : ''}`
+      : `<span class="muted">Nenhum vídeo cadastrado para este sábado.</span> <button class="btn primary" data-act="add" data-coll="informativos">+ Cadastrar</button>`}
+      <div class="notice mt small">Dica: baixe o vídeo com antecedência e anote o nome do arquivo no cadastro — assim não depende da internet na hora do culto.</div>
+    </div></div>` +
+    crud('informativos', null, { title: 'Vídeos por sábado', addLabel: 'Cadastrar vídeo', cols: ['data', 'titulo', 'trimestre', 'link', 'arquivo', 'status'] });
+}
+
+/* ---------- FINANCEIRO (genérico por caixa) ---------- */
+function financeView(ref, base) {
+  const mes = UI.mes;
+  const c = caixa(ref, mes);
+  const ents = {}, sais = {};
+  c.rows.forEach(r => { const b = r.natureza === 'Saída' ? sais : ents; b[r.categoria || 'Sem categoria'] = (b[r.categoria || 'Sem categoria'] || 0) + num(r.valor); });
+  const max = Math.max(1, ...Object.values(ents), ...Object.values(sais));
+  const bars = (obj, out) => Object.entries(obj).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<div class="bar-row"><div class="small">${esc(k)}</div><div class="bar-track"><div class="bar-fill${out ? ' out' : ''}" style="width:${(v / max * 100).toFixed(1)}%"></div></div><div class="num small ${out ? 'neg' : 'pos'}" style="text-align:right">${brl(v)}</div></div>`).join('');
+  return `<div class="card no-print"><div class="card-body tools">
+      <b>Mês:</b> <input type="month" value="${mes}" data-act="fin-month">
+      <button class="btn" data-act="fin-nav" data-d="-1">◀</button><button class="btn" data-act="fin-nav" data-d="1">▶</button>
+      ${ref === 'igreja' ? `<button class="btn primary" data-act="fechamento">🧾 Fechamento do sábado</button>` : ''}
+      <button class="btn" data-act="fin-csv" data-ref="${ref}">⬇ Exportar planilha (CSV)</button>
+    </div></div>
+    <div class="kpis">
+      <div class="kpi green"><div class="lbl">Entradas — ${monthLabel(mes)}</div><div class="val">${brl(c.ent)}</div></div>
+      <div class="kpi red"><div class="lbl">Saídas — ${monthLabel(mes)}</div><div class="val">${brl(c.sai)}</div></div>
+      <div class="kpi ${c.res >= 0 ? '' : 'red'}"><div class="lbl">Resultado do mês</div><div class="val">${brl(c.res)}</div></div>
+      <div class="kpi gold"><div class="lbl">Saldo atual do caixa ${esc(CAIXAS[ref])}</div><div class="val">${brl(c.saldo)}</div><div class="sub">Todos os lançamentos</div></div>
+    </div>
+    ${(c.ent || c.sai) ? `<div class="card"><div class="card-head"><h3>Resumo por categoria</h3></div><div class="card-body bars">${bars(ents)}${bars(sais, true)}</div></div>` : ''}
+    ${crud('financeiro', ref, { filter: r => (r.data || '').startsWith(mes), title: 'Lançamentos de ' + monthLabel(mes), addLabel: 'Lançamento', cols: ['data', 'natureza', 'categoria', 'descricao', 'pessoa', 'forma', 'valor'] })}`;
+}
+function pageFinanceiro() {
+  return pageHead('Dízimos e Ofertas', 'Tesouraria da igreja. Os caixas dos Desbravadores, Aventureiros e ASA são separados e ficam em suas próprias páginas.') +
+    `<div class="notice small">🔒 Os dados ficam somente neste computador. O nome do dizimista é opcional — preencha apenas se a tesouraria precisar.</div>` +
+    financeView('igreja');
+}
+function fechamentoForm() {
+  const fields = [['dizimo', 'Dízimos'], ['regular', 'Oferta Regular'], ['missionaria', 'Oferta Missionária'], ['pacto', 'Pacto'], ['gratidao', 'Oferta de Gratidão'], ['outras', 'Outras entradas']];
+  openCustom('Fechamento do sábado', `
+    <div><label>Data</label><input type="date" name="data" value="${new Date().getDay() === 6 ? todayISO() : nextSabbath()}" required></div>
+    <div><label>Forma</label><select name="forma"><option>Envelope</option><option>Dinheiro</option><option>PIX</option><option>Transferência</option></select></div>
+    ${fields.map(([k, l]) => `<div><label>${l} (R$)</label><input type="number" step="0.01" min="0" name="${k}" placeholder="0,00"></div>`).join('')}
+    <div class="full muted small">Informe os totais contados. Será criado um lançamento para cada valor preenchido.</div>`,
+    fd => {
+      const cat = { dizimo: 'Dízimo', regular: 'Oferta Regular', missionaria: 'Oferta Missionária', pacto: 'Pacto', gratidao: 'Oferta de Gratidão', outras: 'Outras entradas' };
+      let n = 0;
+      Object.keys(cat).forEach(k => {
+        const v = num(fd.get(k));
+        if (v > 0) { DB.financeiro.push({ id: uid(), ref: 'igreja', data: fd.get('data'), natureza: 'Entrada', categoria: cat[k], descricao: 'Fechamento do sábado', pessoa: '', forma: fd.get('forma'), valor: v }); n++; }
+      });
+      if (!n) { toast('Preencha pelo menos um valor', true); return false; }
+      toast(`${n} lançamento(s) criado(s) ✔`);
+    });
+}
+function exportCSV(ref) {
+  const rows = DB.financeiro.filter(r => r.ref === ref && (r.data || '').startsWith(UI.mes)).sort((a, b) => a.data.localeCompare(b.data));
+  const q = s => `"${String(s ?? '').replace(/"/g, '""')}"`;
+  const lines = [['Data', 'Tipo', 'Categoria', 'Descrição', 'Pessoa', 'Forma', 'Valor'].join(';'),
+  ...rows.map(r => [fmtD(r.data), r.natureza, r.categoria, r.descricao, r.pessoa, r.forma, (r.natureza === 'Saída' ? -1 : 1) * num(r.valor)].map((v, i) => i === 6 ? String(v).replace('.', ',') : q(v)).join(';'))];
+  download(`caixa-${ref}-${UI.mes}.csv`, '﻿' + lines.join('\r\n'), 'text/csv');
+}
+
+/* ---------- DEPARTAMENTOS ---------- */
+function pageDepto(d, tab) {
+  const lider = DB.equipe.find(e => e.ref === d.id && /l[ií]der|diretor|primeiro/i.test(e.cargo || ''));
+  const head = pageHead(`${d.ico} ${d.nome}`, esc(d.desc) + (lider ? ` · Liderança: <b>${esc(lider.nome)}</b>` : ''));
+  const t = tabs('depto/' + d.id, [['atividades', '🗓️ Atividades'], ['equipe', '👥 Equipe'], ['anotacoes', '📝 Anotações / Atas']], tab);
+  if (tab === 'equipe') return head + t + crud('equipe', d.id, { title: 'Equipe — ' + d.nome, sortKey: 'nome', asc: true });
+  if (tab === 'anotacoes') return head + t + notasBox(d.id);
+  return head + t + `<div class="card"><div class="card-head"><h3>Próximas atividades</h3></div>${atividadesList(proximasAtividades(90, d.id))}</div>` +
+    crud('atividades', d.id, { title: 'Todas as atividades', addLabel: 'Atividade', cols: ['data', 'hora', 'titulo', 'local', 'responsavel', 'status'] });
+}
+function notasBox(ref) {
+  return `<div class="card"><div class="card-head"><h3>Anotações, atas e planejamento</h3><span class="muted small" id="notaStatus">Salvo automaticamente</span></div>
+    <div class="card-body"><textarea data-nota="${ref}" style="min-height:340px" placeholder="Escreva aqui atas de reunião, planejamento do ano, ideias...">${esc(DB.notas[ref] || '')}</textarea></div></div>`;
+}
+
+/* ---------- CLUBES (Desbravadores / Aventureiros) ---------- */
+function pageClube(c, tab) {
+  const head = pageHead(`${c.ico} ${c.nome}`, esc(c.desc));
+  const t = tabs('clube/' + c.id, [['resumo', '📊 Resumo'], ['caixa', '💰 Caixa do clube'], ['membros', '🧒 Membros'], ['atividades', '🗓️ Atividades'], ['diretoria', '👥 Diretoria'], ['anotacoes', '📝 Anotações']], tab);
+  if (tab === 'caixa') return head + t + financeView(c.id);
+  if (tab === 'membros') return head + t + crud('clubeMembros', c.id, { title: 'Membros do clube', sortKey: 'nome', asc: true, cols: ['nome', 'nascimento', 'unidade', 'classe', 'responsavel', 'telefone', 'situacao'] });
+  if (tab === 'atividades') return head + t + crud('atividades', c.id, { title: 'Atividades exclusivas do clube', addLabel: 'Atividade', cols: ['data', 'hora', 'titulo', 'local', 'responsavel', 'status'] });
+  if (tab === 'diretoria') return head + t + crud('equipe', c.id, { title: 'Diretoria e conselheiros', sortKey: 'nome', asc: true });
+  if (tab === 'anotacoes') return head + t + notasBox(c.id);
+  const cx = caixa(c.id, monthISO());
+  const mem = DB.clubeMembros.filter(m => m.ref === c.id && m.situacao !== 'Inativo');
+  const porUn = {}; mem.forEach(m => { const u = m.unidade || 'Sem unidade'; porUn[u] = (porUn[u] || 0) + 1; });
+  return head + t + `<div class="kpis">
+      <div class="kpi gold"><div class="lbl">Saldo do caixa</div><div class="val">${brl(cx.saldo)}</div><div class="sub">Separado da tesouraria da igreja</div></div>
+      <div class="kpi green"><div class="lbl">Entradas no mês</div><div class="val">${brl(cx.ent)}</div></div>
+      <div class="kpi red"><div class="lbl">Saídas no mês</div><div class="val">${brl(cx.sai)}</div></div>
+      <div class="kpi"><div class="lbl">Membros ativos</div><div class="val">${mem.length}</div><div class="sub">${Object.keys(porUn).length} unidade(s)</div></div>
+    </div>
+    <div class="grid g2">
+      <div class="card"><div class="card-head"><h3>Próximas atividades do clube</h3><a class="btn" href="#/clube/${c.id}/atividades">Ver todas</a></div>${atividadesList(proximasAtividades(120, c.id))}</div>
+      <div class="card"><div class="card-head"><h3>Membros por unidade</h3><a class="btn" href="#/clube/${c.id}/membros">Ver membros</a></div>
+        ${Object.keys(porUn).length ? `<ul class="list">${Object.entries(porUn).sort().map(([u, n]) => `<li><span class="grow">${esc(u)}</span><span class="badge">${n}</span></li>`).join('')}</ul>` : '<div class="card-body muted">Nenhum membro cadastrado.</div>'}
+      </div>
+    </div>`;
+}
+
+/* ---------- ASA ---------- */
+function pageAsa(tab) {
+  const head = pageHead('🧺 ASA — Ação Solidária Adventista', 'Arrecadação e distribuição de alimentos para pessoas necessitadas.');
+  const t = tabs('asa', [['resumo', '📦 Estoque'], ['doacoes', '⬇ Doações recebidas'], ['distribuicoes', '⬆ Distribuições'], ['familias', '🏠 Famílias assistidas'], ['caixa', '💰 Caixa da ASA']], tab);
+  if (tab === 'doacoes') return head + t + crud('asaDoacoes', null, { title: 'Doações recebidas', addLabel: 'Registrar doação' });
+  if (tab === 'distribuicoes') return head + t + crud('asaDistribuicoes', null, { title: 'Distribuições / entregas', addLabel: 'Registrar entrega' });
+  if (tab === 'familias') return head + t + crud('asaFamilias', null, { title: 'Famílias assistidas', sortKey: 'nome', asc: true, cols: ['nome', 'telefone', 'endereco', 'pessoas', 'situacao', 'obs'] });
+  if (tab === 'caixa') return head + t + financeView('asa');
+  const est = estoque();
+  const mes = monthISO();
+  const entMes = DB.asaDistribuicoes.filter(d => (d.data || '').startsWith(mes));
+  const famMes = new Set(entMes.map(d => d.familia)).size;
+  const vencendo = DB.asaDoacoes.filter(d => d.validade && d.validade <= isoOf(new Date(Date.now() + 30 * 864e5))).sort((a, b) => a.validade.localeCompare(b.validade));
+  return head + t + `<div class="kpis">
+      <div class="kpi orange"><div class="lbl">Itens com estoque</div><div class="val">${est.filter(e => e.saldo > 0).length}</div></div>
+      <div class="kpi"><div class="lbl">Famílias cadastradas (ativas)</div><div class="val">${DB.asaFamilias.filter(f => f.situacao !== 'Encerrada').length}</div></div>
+      <div class="kpi green"><div class="lbl">Famílias atendidas no mês</div><div class="val">${famMes}</div><div class="sub">${entMes.length} entrega(s)</div></div>
+      <div class="kpi gold"><div class="lbl">Caixa da ASA</div><div class="val">${brl(caixa('asa').saldo)}</div></div>
+    </div>
+    <div class="tools no-print" style="margin-bottom:16px">
+      <button class="btn primary" data-act="add" data-coll="asaDoacoes">⬇ Registrar doação</button>
+      <button class="btn primary" data-act="add" data-coll="asaDistribuicoes">⬆ Registrar entrega</button>
+    </div>
+    <div class="grid g2">
+      <div class="card"><div class="card-head"><h3>📦 Estoque atual</h3></div><div class="table-wrap"><table>
+        <thead><tr><th>Item</th><th class="num">Recebido</th><th class="num">Distribuído</th><th class="num">Em estoque</th></tr></thead>
+        <tbody>${est.length ? est.map(e => `<tr><td>${esc(e.item)}</td><td class="num">${e.ent} ${esc(e.unidade)}</td><td class="num">${e.sai} ${esc(e.unidade)}</td><td class="num ${e.saldo > 0 ? 'pos' : e.saldo < 0 ? 'neg' : 'muted'}">${e.saldo} ${esc(e.unidade)}</td></tr>`).join('')
+      : '<tr><td colspan="4" class="empty">Nenhuma doação registrada.</td></tr>'}</tbody></table></div></div>
+      <div class="card"><div class="card-head"><h3>⏰ Validade próxima (30 dias)</h3></div>
+        ${vencendo.length ? `<ul class="list">${vencendo.map(v => `<li><span class="grow"><b>${esc(v.item)}</b> — ${v.quantidade} ${esc(v.unidade)}</span><span class="badge ${v.validade < todayISO() ? 'red' : 'orange'}">${fmtD(v.validade)}</span></li>`).join('')}</ul>` : '<div class="card-body muted">Nenhum item vencendo.</div>'}
+      </div>
+    </div>`;
+}
+
+/* ---------- MEMBROS ---------- */
+function pageMembros() {
+  return pageHead('Membros', 'Os nomes cadastrados aqui aparecem como sugestão nas escalas e formulários.') +
+    crud('membros', null, { title: 'Membros e colaboradores', sortKey: 'nome', asc: true, cols: ['nome', 'telefone', 'nascimento', 'departamento', 'funcao', 'situacao'] });
+}
+
+/* ---------- BACKUP ---------- */
+function pageBackup() {
+  const count = ['membros', 'financeiro', 'escalaMusica', 'escalaAdoracao', 'escalaSom', 'informativos', 'atividades', 'equipe', 'clubeMembros', 'asaDoacoes', 'asaDistribuicoes', 'asaFamilias'].reduce((s, k) => s + DB[k].length, 0);
+  return pageHead('Backup e Configurações', '') +
+    `<div class="notice warn"><b>Importante:</b> os dados ficam salvos <b>neste navegador, neste computador</b>. Para levar para outro computador ou não perder nada, faça o <b>backup</b> regularmente (ex.: todo sábado) e guarde o arquivo num pen drive ou na nuvem.</div>
+    <div class="grid g2">
+      <div class="card"><div class="card-head"><h3>💾 Backup</h3></div><div class="card-body">
+        <p>Total de registros: <b>${count}</b></p>
+        <div class="tools"><button class="btn primary" data-act="export">⬇ Baixar backup (.json)</button>
+          <label class="btn">⬆ Restaurar backup<input type="file" accept=".json,application/json" data-act="import" hidden></label></div>
+        <p class="muted small mt">Restaurar substitui todos os dados atuais pelos do arquivo.</p>
+      </div></div>
+      <div class="card"><div class="card-head"><h3>⛪ Dados da igreja</h3></div><div class="card-body">
+        <label class="small"><b>Nome da igreja</b></label><input data-cfg="igreja" value="${esc(DB.config.igreja)}" placeholder="Ex.: IASD Central">
+        <label class="small mt" style="display:block"><b>Cidade / Distrito</b></label><input data-cfg="cidade" value="${esc(DB.config.cidade)}">
+        <p class="muted small mt">Salvo automaticamente.</p>
+      </div></div>
+    </div>
+    <div class="card"><div class="card-head"><h3>⚠ Zona de perigo</h3></div><div class="card-body">
+      <button class="btn danger" data-act="wipe">Apagar todos os dados</button> <span class="muted small">Faça um backup antes!</span>
+    </div></div>`;
+}
+
+/* ============================================================
+   EVENTOS
+   ============================================================ */
+function moveItem(arr, id, d) {
+  const i = arr.findIndex(x => x.id === id), j = i + d;
+  if (i < 0 || j < 0 || j >= arr.length) return;
+  [arr[i], arr[j]] = [arr[j], arr[i]];
+}
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]');
+  if (!el) return;
+  const act = el.dataset.act;
+  if (el.tagName === 'INPUT' || el.tagName === 'SELECT') return; // tratados no "change"
+  const id = el.dataset.id;
+  const rot = () => getProg(UI.roteiro || DB.aoVivo.programa);
+  switch (act) {
+    case 'menu': document.body.classList.toggle('nav-open'); break;
+    case 'print': window.print(); break;
+    case 'theme': DB.config.tema = DB.config.tema === 'dark' ? 'light' : 'dark'; applyTheme(); save(); break;
+    case 'close-modal': closeModal(); break;
+    case 'add': openForm(el.dataset.coll, el.dataset.ref || null); break;
+    case 'edit': openForm(el.dataset.coll, null, id); break;
+    case 'del':
+      if (confirm('Excluir este registro?')) { DB[el.dataset.coll] = DB[el.dataset.coll].filter(r => r.id !== id); save(); render(); toast('Excluído'); }
+      break;
+    case 'gen-sabs': {
+      const ym = $('#genMonth').value; if (!ym) return;
+      const [y, m] = ym.split('-').map(Number);
+      const d = new Date(y, m - 1, 1); let n = 0;
+      while (d.getMonth() === m - 1) {
+        if (d.getDay() === 6) {
+          const iso = isoOf(d);
+          if (!DB[el.dataset.coll].some(r => r.data === iso && r.culto === 'Sábado — Manhã')) { DB[el.dataset.coll].push({ id: uid(), data: iso, culto: 'Sábado — Manhã' }); n++; }
+        }
+        d.setDate(d.getDate() + 1);
+      }
+      save(); render(); toast(n ? `${n} sábado(s) criado(s)` : 'Todos os sábados já existem');
+      break;
+    }
+    case 'fin-nav': {
+      const [y, m] = UI.mes.split('-').map(Number);
+      const d = new Date(y, m - 1 + Number(el.dataset.d), 1);
+      UI.mes = `${d.getFullYear()}-${pad(d.getMonth() + 1)}`; render(); break;
+    }
+    case 'fechamento': fechamentoForm(); break;
+    case 'fin-csv': exportCSV(el.dataset.ref); break;
+    case 'inf-status': DB.informativos.find(i => i.id === id).status = el.dataset.v; save(); render(); break;
+    /* --- ao vivo --- */
+    case 'live-toggle': {
+      liveReset();
+      const f = DB.aoVivo.feitos;
+      const p = getProg(DB.aoVivo.programa);
+      const idx = p.itens.findIndex(i => i.id === id);
+      // Clicar marca este e todos os anteriores como feitos; clicar num feito desmarca ele e os seguintes
+      if (f.includes(id)) DB.aoVivo.feitos = f.filter(x => p.itens.findIndex(i => i.id === x) < idx);
+      else DB.aoVivo.feitos = p.itens.slice(0, idx + 1).map(i => i.id);
+      save(); render(); break;
+    }
+    case 'live-next': liveAdvance(1); break;
+    case 'live-back': liveAdvance(-1); break;
+    case 'live-restart': if (confirm('Reiniciar o culto (desmarcar todos os itens)?')) { DB.aoVivo.feitos = []; save(); render(); } break;
+    case 'live-full':
+      if (document.body.classList.toggle('focus')) document.documentElement.requestFullscreen?.().catch(() => { });
+      else if (document.fullscreenElement) document.exitFullscreen();
+      break;
+    /* --- roteiro --- */
+    case 'pi-up': moveItem(rot().itens, id, -1); save(); render(); break;
+    case 'pi-down': moveItem(rot().itens, id, 1); save(); render(); break;
+    case 'pi-del': if (confirm('Excluir este momento?')) { const p = rot(); p.itens = p.itens.filter(i => i.id !== id); save(); render(); } break;
+    case 'pi-add': rot().itens.push({ id: uid(), hora: '', titulo: 'Novo momento', hino: '', obs: '' }); save(); render(); break;
+    case 'rot-new': { const nome = prompt('Nome do novo roteiro (ex.: Sábado — Tarde, Culto de quarta):'); if (!nome) return; const p = novoRoteiro(nome, []); DB.programas.push(p); UI.roteiro = p.id; save(); render(); break; }
+    case 'rot-dup': { const o = rot(); const p = novoRoteiro(o.nome + ' (cópia)', o.itens); DB.programas.push(p); UI.roteiro = p.id; save(); render(); break; }
+    case 'rot-rename': { const p = rot(); const nome = prompt('Novo nome:', p.nome); if (nome) { p.nome = nome; save(); render(); } break; }
+    case 'rot-del': {
+      if (DB.programas.length < 2) return toast('É preciso ter pelo menos um roteiro', true);
+      if (!confirm('Excluir este roteiro?')) return;
+      const p = rot(); DB.programas = DB.programas.filter(x => x.id !== p.id);
+      if (DB.aoVivo.programa === p.id) DB.aoVivo.programa = DB.programas[0].id;
+      UI.roteiro = DB.programas[0].id; save(); render(); break;
+    }
+    case 'rot-reset': if (confirm('Substituir os itens deste roteiro pelo padrão do bloco de notas?')) { rot().itens = ROTEIRO_PADRAO.map(i => ({ ...i, id: uid() })); save(); render(); } break;
+    case 'rot-txt': { const p = rot(); download(p.nome.replace(/[\\/:*?"<>|]/g, '-') + '.txt', roteiroTxt(p), 'text/plain'); break; }
+    /* --- checklist --- */
+    case 'chk-add': { const t = prompt('Novo item do checklist:'); if (t) { DB.checklist.push({ id: uid(), texto: t }); save(); render(); } break; }
+    case 'chk-del': e.preventDefault(); if (confirm('Remover este item?')) { DB.checklist = DB.checklist.filter(c => c.id !== id); save(); render(); } break;
+    case 'chk-clear': DB.aoVivo.check = []; save(); render(); break;
+    /* --- backup --- */
+    case 'export': download(`backup-iasd-${todayISO()}.json`, JSON.stringify(DB, null, 2)); toast('Backup baixado ✔'); break;
+    case 'wipe':
+      if (confirm('Tem certeza? TODOS os dados serão apagados.') && prompt('Digite APAGAR para confirmar:') === 'APAGAR') { DB = defaults(); save(); render(); toast('Dados apagados'); }
+      break;
+  }
+});
+
+document.addEventListener('change', e => {
+  const el = e.target;
+  const act = el.dataset.act;
+  if (el.dataset.pi) {
+    const p = getProg(UI.roteiro || DB.aoVivo.programa);
+    const it = p.itens.find(i => i.id === el.dataset.pi);
+    if (it) { it[el.dataset.f] = el.value.trim(); save(); toast('Roteiro salvo ✔'); }
+    return;
+  }
+  if (el.dataset.cfg) { DB.config[el.dataset.cfg] = el.value.trim(); save(); renderNav(location.hash.replace(/^#\/?/, '') || 'dashboard'); toast('Salvo ✔'); return; }
+  switch (act) {
+    case 'toggle-past': UI.showPast = el.checked; render(); break;
+    case 'fin-month': if (el.value) { UI.mes = el.value; render(); } break;
+    case 'live-prog': DB.aoVivo.programa = el.value; DB.aoVivo.feitos = []; save(); render(); break;
+    case 'rot-select': UI.roteiro = el.value; render(); break;
+    case 'chk': {
+      liveReset();
+      const s = new Set(DB.aoVivo.check);
+      el.checked ? s.add(el.dataset.id) : s.delete(el.dataset.id);
+      DB.aoVivo.check = [...s]; save(); render(); break;
+    }
+    case 'import': {
+      const file = el.files[0]; if (!file) return;
+      const r = new FileReader();
+      r.onload = () => {
+        try {
+          const data = JSON.parse(r.result);
+          if (!data || typeof data !== 'object' || !Array.isArray(data.financeiro)) throw new Error('Arquivo não parece ser um backup deste sistema.');
+          if (!confirm('Substituir TODOS os dados atuais pelos dados do backup?')) return;
+          DB = Object.assign(defaults(), data); save(); applyTheme(); render(); toast('Backup restaurado ✔');
+        } catch (err) { toast('Erro: ' + err.message, true); }
+      };
+      r.readAsText(file);
+      break;
+    }
+  }
+});
+
+document.addEventListener('input', e => {
+  const el = e.target;
+  if (el.matches('[data-search]')) {
+    const q = el.value.trim().toLowerCase();
+    $$('tbody tr', el.closest('.card')).forEach(tr => { tr.style.display = !q || tr.textContent.toLowerCase().includes(q) ? '' : 'none'; });
+  }
+  if (el.dataset.nota) {
+    DB.notas[el.dataset.nota] = el.value;
+    clearTimeout(el._t); el._t = setTimeout(() => { save(); const s = $('#notaStatus'); if (s) s.textContent = 'Salvo ✔ ' + new Date().toLocaleTimeString('pt-BR'); }, 500);
+  }
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !$('#modal').hidden) return closeModal();
+  if (!$('#liveClock') || !$('#modal').hidden) return;
+  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); liveAdvance(1); }
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); liveAdvance(-1); }
+  else if (e.key === 'Escape' && document.body.classList.contains('focus')) document.body.classList.remove('focus');
+});
+document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement) document.body.classList.remove('focus'); });
+$('#modal').addEventListener('mousedown', e => { if (e.target.id === 'modal') closeModal(); });
+
+function applyTheme() { document.body.classList.toggle('dark', DB.config.tema === 'dark'); }
+
+window.addEventListener('hashchange', render);
+applyTheme();
+render();

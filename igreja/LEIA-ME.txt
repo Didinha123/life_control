@@ -1,0 +1,36 @@
+SISTEMA DE GESTÃO — IGREJA ADVENTISTA DO SÉTIMO DIA
+====================================================
+
+COMO ABRIR
+- Copie a pasta "igreja" inteira para o computador (pen drive, e-mail, etc.).
+- Dê dois cliques em "index.html". Abre no Chrome/Edge. Não precisa de internet.
+- Mantenha juntos: index.html, a pasta "css" e a pasta "js".
+
+ONDE FICAM OS DADOS
+- Ficam salvos NO NAVEGADOR deste computador.
+- Para passar os dados para outro computador:
+    1) No computador antigo: menu "Backup e Configurações" > "Baixar backup (.json)"
+    2) No computador novo: abra o sistema > "Backup e Configurações" > "Restaurar backup"
+- Faça backup toda semana e guarde o arquivo num pen drive ou na nuvem.
+- Não limpe os "dados de navegação / cookies" do navegador sem ter backup.
+
+MÓDULOS
+- Visão Geral: resumo de dízimos/ofertas do mês, caixas, escala do próximo sábado,
+  próximas atividades e aniversariantes.
+- Sonoplastia:
+    * Culto ao vivo: relógio, item atual, próximo item, contagem até o próximo horário.
+      Teclas: ESPAÇO ou SETA → avança | SETA ← volta. Botão "Tela cheia".
+    * Roteiro: edite a ordem do culto (já vem com o roteiro do bloco de notas).
+      Pode criar outros roteiros (Sábado à tarde, Quarta...) e exportar em .txt.
+    * Escala de sonoplastas e Checklist pré-culto.
+- Escala de Adoração / Escala de Música (botão "Gerar sábados do mês").
+- Informativo Mundial das Missões: vídeo de cada sábado (link, arquivo, situação).
+- Dízimos e Ofertas: lançamentos, "Fechamento do sábado", resumo por categoria,
+  exportação CSV (abre no Excel).
+- Departamentos: Ancionato, Ministério Jovem, Ministério da Criança, Ministério da Mulher,
+  Diaconato, Escola Sabatina, Ministério da Saúde (atividades, equipe, anotações/atas).
+- Clube de Desbravadores e Clube de Aventureiros: CAIXA PRÓPRIO separado, membros,
+  unidades/classes, atividades exclusivas, diretoria.
+- ASA: doações recebidas, distribuições, estoque automático, famílias assistidas,
+  validade próxima e caixa próprio.
+- Membros: os nomes cadastrados aparecem como sugestão em todos os formulários.
