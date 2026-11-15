@@ -13,6 +13,21 @@ ONDE FICAM OS DADOS
 - Faça backup toda semana e guarde o arquivo num pen drive ou na nuvem.
 - Não limpe os "dados de navegação / cookies" do navegador sem ter backup.
 
+BANCO DE DADOS ONLINE (SUPABASE) — OPCIONAL, RECOMENDADO
+- Com o Supabase os dados ficam na nuvem e vários computadores/celulares usam
+  as mesmas informações em tempo real (tesouraria, sonoplastia, secretaria...).
+- Sem internet o sistema continua funcionando; envia tudo quando a conexão voltar.
+- Passo a passo: abra o sistema > "Backup e Configurações" >
+  "Banco de dados online (Supabase)" > "Como configurar".
+  Resumo:
+    1) Crie um projeto grátis em supabase.com
+    2) SQL Editor > cole o arquivo "supabase.sql" (ou o botão "Copiar SQL") > Run
+    3) Authentication > Users > Add user: crie e-mail e senha para cada pessoa
+    4) Authentication > desative "Allow new users to sign up"
+    5) Copie a Project URL e a chave anon/publishable para o sistema e entre
+- NUNCA coloque a chave "service_role" / "secret" no sistema.
+- Mesmo usando o Supabase, continue baixando um backup .json de vez em quando.
+
 MÓDULOS
 - Visão Geral: resumo de dízimos/ofertas do mês, caixas, escala do próximo sábado,
   próximas atividades e aniversariantes.
