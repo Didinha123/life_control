@@ -2,9 +2,8 @@ SISTEMA DE GESTÃO — IGREJA ADVENTISTA DO SÉTIMO DIA
 ====================================================
 
 COMO ABRIR
-- Copie a pasta "igreja" inteira para o computador (pen drive, e-mail, etc.).
-- Dê dois cliques em "index.html". Abre no Chrome/Edge. Não precisa de internet.
-- Mantenha juntos: index.html, a pasta "css" e a pasta "js".
+- Copie o arquivo "gestao-iasd.html" para o computador (pen drive, e-mail, etc.).
+- Dê dois cliques em "gestao-iasd.html". Abre no Chrome/Edge. Não precisa de internet.
 
 ONDE FICAM OS DADOS
 - Ficam salvos NO NAVEGADOR deste computador.
