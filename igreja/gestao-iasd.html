@@ -4,6 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gestão IASD</title>
+<script>
+/* ============================================================
+   CONFIGURAÇÃO DO SUPABASE (banco de dados online)
+   Cole entre as aspas a URL e a chave PÚBLICA do seu projeto.
+   Com isso preenchido, todos os computadores conectam sozinhos
+   e pedem apenas o e-mail e a senha do usuário.
+   ⚠ NUNCA coloque aqui a chave "service_role" / "secret".
+   ============================================================ */
+window.IASD_SUPABASE = {
+  url: '',   // exemplo: 'https://abcdefghijkl.supabase.co'
+  key: ''    // exemplo: 'eyJhbGciOiJIUzI1NiIs...'  ou  'sb_publishable_...'
+};
+</script>
 <style>
 /* ============================================================
    GESTÃO IASD — style.css
@@ -343,7 +356,7 @@ body.focus main { margin-left: 0; max-width: none; }
     <div class="brand-logo">IASD</div>
     <div>
       <div class="brand-name" id="brandName">Igreja Adventista</div>
-      <div class="brand-sub">do Sétimo Dia · Gestão</div>
+      <div class="brand-sub">do Sétimo Dia · Gestão · <b>v2 ☁</b></div>
     </div>
   </div>
   <div class="nav" id="nav"></div>
@@ -1207,6 +1220,7 @@ function pageMembros() {
 function pageBackup() {
   const count = ['membros', 'financeiro', 'escalaMusica', 'escalaAdoracao', 'escalaSom', 'informativos', 'atividades', 'equipe', 'clubeMembros', 'asaDoacoes', 'asaDistribuicoes', 'asaFamilias'].reduce((s, k) => s + DB[k].length, 0);
   return pageHead('Backup e Configurações', '') +
+    `<div class="notice warn" id="cloudFail">⚠ <b>A parte do banco de dados online (Supabase) não carregou.</b> Atualize o navegador (use Google Chrome ou Microsoft Edge atualizados) e abra o arquivo novamente.</div>` +
     `<div class="notice warn"><b>Importante:</b> os dados ficam salvos <b>neste navegador, neste computador</b>. Para levar para outro computador ou não perder nada, faça o <b>backup</b> regularmente (ex.: todo sábado) e guarde o arquivo num pen drive ou na nuvem.</div>
     <div class="grid g2">
       <div class="card"><div class="card-head"><h3>💾 Backup</h3></div><div class="card-body">
@@ -1425,7 +1439,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   let SNAP = null; // { "colecao|id": "conteúdo já enviado" }
 
   /* ---------- utilidades ---------- */
-  const getCfg = () => { try { return JSON.parse(localStorage.getItem(CFGK)) || null; } catch { return null; } };
+  const EMB = (() => { const e = window.IASD_SUPABASE || {}; const url = String(e.url || '').trim().replace(/\/+$/, ''), key = String(e.key || '').trim(); return url && key ? { url, key } : null; })();
+  const getCfg = () => { if (EMB) return EMB; try { return JSON.parse(localStorage.getItem(CFGK)) || null; } catch { return null; } };
   const loadSnap = () => { try { const s = localStorage.getItem(SNAPK); return s ? JSON.parse(s) : null; } catch { return null; } };
   const saveSnap = () => { try { localStorage.setItem(SNAPK, JSON.stringify(SNAP || {})); } catch { } };
   // JSON com chaves ordenadas (o Postgres reordena as chaves do jsonb)
@@ -1509,7 +1524,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
       const cur = toRows(DB);
       const ups = [], dels = {};
       cur.forEach((v, k) => { if (SNAP[k] !== v.s) ups.push(v); });
-      Object.keys(SNAP).forEach(k => { if (!cur.has(k)) { const i = k.indexOf('|'); (dels[k.slice(0, i)] ||= []).push(k.slice(i + 1)); } });
+      Object.keys(SNAP).forEach(k => { if (!cur.has(k)) { const i = k.indexOf('|'); (dels[k.slice(0, i)] = dels[k.slice(0, i)] || []).push(k.slice(i + 1)); } });
       for (let i = 0; i < ups.length; i += 500) {
         const part = ups.slice(i, i + 500);
         const { error } = await cloud.sb.from(T).upsert(part.map(v => JSON.parse(v.s)), { onConflict: 'colecao,id' });
@@ -1628,6 +1643,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     const cfg = getCfg();
     if (!cfg) { setStatus('off'); return; }
     if (!window.supabase?.createClient) { setStatus('err', 'Biblioteca do Supabase não carregou.'); return; }
+    if (keyProblem(cfg.key)) { setStatus('err', keyProblem(cfg.key)); return; }
     try {
       cloud.sb = window.supabase.createClient(cfg.url, cfg.key, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'iasd-auth' } });
       const { data } = await cloud.sb.auth.getSession();
@@ -1668,15 +1684,16 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         ${cloud.user ? `<p>Conectado como <b>${esc(cloud.user.email)}</b>.</p>` : ''}
         <p class="small" id="cloudMsg" style="color:var(--red)">${esc(cloud.status === 'err' ? cloud.msg : '')}</p>
         <div class="grid g2">
-          <div><label class="small"><b>URL do projeto</b></label><input id="sbUrl" value="${esc(cfg.url || '')}" placeholder="https://xxxxxxxx.supabase.co"></div>
-          <div><label class="small"><b>Chave pública (anon / publishable)</b></label><input id="sbKey" value="${esc(cfg.key || '')}" placeholder="eyJhbGciOi... ou sb_publishable_..."></div>
+          ${EMB ? '<div class="notice small">🔒 A URL e a chave estão gravadas dentro do código do sistema (no início do arquivo). Basta entrar com e-mail e senha.</div>' : ''}
+        <div><label class="small"><b>URL do projeto</b></label><input id="sbUrl" ${EMB ? 'readonly' : ''} value="${esc(cfg.url || '')}" placeholder="https://xxxxxxxx.supabase.co"></div>
+          <div><label class="small"><b>Chave pública (anon / publishable)</b></label><input id="sbKey" ${EMB ? 'readonly' : ''} value="${esc(cfg.key || '')}" placeholder="eyJhbGciOi... ou sb_publishable_..."></div>
         </div>
         <div class="tools mt">
-          <button class="btn primary" data-act="cloud-save">Salvar e conectar</button>
+          ${EMB ? '' : '<button class="btn primary" data-act="cloud-save">Salvar e conectar</button>'}
           ${cfg.url ? `${cloud.user
         ? `<button class="btn" data-act="cloud-sync">⟳ Sincronizar agora</button><button class="btn" data-act="cloud-logout">Sair (trocar usuário)</button>`
         : `<button class="btn" data-act="cloud-login">Entrar</button>`}
-          <button class="btn danger" data-act="cloud-forget">Desconectar este computador</button>` : ''}
+          ${EMB ? '' : '<button class="btn danger" data-act="cloud-forget">Desconectar este computador</button>'}` : ''}
         </div>
         <details class="mt"><summary><b>📋 Como configurar o Supabase (passo a passo)</b></summary>
           <ol style="line-height:1.7">
@@ -1702,7 +1719,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   pageBackup = function () {
     return origBackup()
       .replace('os dados ficam salvos <b>neste navegador, neste computador</b>', cloud.ready ? 'os dados estão no <b>Supabase</b> e também neste computador' : 'os dados ficam salvos <b>neste navegador, neste computador</b>')
-      .replace('<div class="grid g2">', cloudSection() + '<div class="grid g2">');
+      .replace('<div class="grid g2">', cloudSection() + '<div class="grid g2">')
+      .replace(/<div class="notice warn" id="cloudFail">[\s\S]*?<\/div>/, '');
   };
 
   document.addEventListener('click', async e => {

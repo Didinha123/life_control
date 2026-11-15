@@ -24,7 +24,10 @@ BANCO DE DADOS ONLINE (SUPABASE) — OPCIONAL, RECOMENDADO
     2) SQL Editor > cole o arquivo "supabase.sql" (ou o botão "Copiar SQL") > Run
     3) Authentication > Users > Add user: crie e-mail e senha para cada pessoa
     4) Authentication > desative "Allow new users to sign up"
-    5) Copie a Project URL e a chave anon/publishable para o sistema e entre
+    5) Copie a Project URL e a chave anon/publishable para o sistema e entre.
+       OU grave dentro do código: abra "gestao-iasd.html" no Bloco de Notas e, nas
+       primeiras linhas, preencha  url: '...'  e  key: '...'  (bloco IASD_SUPABASE).
+       Assim todos os computadores conectam sozinhos e só pedem e-mail e senha.
 - NUNCA coloque a chave "service_role" / "secret" no sistema.
 - Mesmo usando o Supabase, continue baixando um backup .json de vez em quando.
 
